@@ -43,7 +43,10 @@ main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:28px 20p
 .btn-danger:hover{background:rgba(240,93,93,.2)}
 .btn-success{background:rgba(62,207,142,.1);color:var(--green);border:1px solid rgba(62,207,142,.22)}
 .btn-success:hover{background:rgba(62,207,142,.2)}
-.btn-sm{padding:5px 11px;font-size:.76rem}
+.btn-end-day{background:rgba(240,93,93,.1);color:var(--red);border:1px solid rgba(240,93,93,.3)}
+.btn-end-day:hover{background:rgba(240,93,93,.22);border-color:var(--red)}
+.btn-end-day.armed{background:var(--red);color:#fff;border-color:var(--red);animation:urgentPulse .6s infinite alternate}
+@keyframes urgentPulse{from{box-shadow:0 0 0 0 rgba(240,93,93,.4)}to{box-shadow:0 0 0 6px rgba(240,93,93,0)}}
 
 /* ── SUMMARY ───────────────────────── */
 .summary-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:28px}
@@ -276,6 +279,10 @@ main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:28px 20p
     <div class="chip">Active <strong id="hdr-active">0</strong></div>
     <div class="chip">Served <strong id="hdr-served">0</strong></div>
     <span id="session-timer">--:--:--</span>
+    <button class="btn btn-end-day btn-sm" id="btn-endday">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Complete the Day
+    </button>
   </div>
 </header>
 
@@ -323,7 +330,6 @@ main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:28px 20p
 <script>
 /* ══ CONFIG ══════════════════════════ */
 const AMT  = [10,20,30,40,50,70,100,150,200];
-const SH   = 10;           // session hours
 const SKEY = 'shoptrack_v5';
 
 /* ══ STATE ═══════════════════════════ */
@@ -336,13 +342,13 @@ let activeFilter = 'all';
 function save(){
   S.savedAt = Date.now();
   try{ localStorage.setItem(SKEY, JSON.stringify(S)); }catch(e){}
+  if(typeof updateSavedAt==='function') updateSavedAt();
 }
 function load(){
   try{
     const r = localStorage.getItem(SKEY); if(!r) return;
     const d = JSON.parse(r);
-    if((Date.now()-(d.savedAt||0))/3600000 < SH) S = d;
-    else localStorage.removeItem(SKEY);
+    if(d && d.customers) S = d; // no expiry — persists until Complete the Day
   }catch(e){ localStorage.removeItem(SKEY); }
 }
 
@@ -922,6 +928,34 @@ function exportPDF(){
   toast('PDF preview opened!');
 }
 
+/* ══ COMPLETE THE DAY ════════════════ */
+document.getElementById('btn-endday').addEventListener('click', ()=>{
+  const btn = document.getElementById('btn-endday');
+  if(btn.dataset.armed==='1'){
+    // Export PDF first, then wipe
+    exportPDF();
+    setTimeout(()=>{
+      S = { customers:[], createdAt:Date.now(), custCount:0 };
+      save(); renderAll();
+      btn.dataset.armed='0';
+      btn.classList.remove('armed');
+      btn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Complete the Day`;
+      toast('🌙 Day completed — all data cleared!');
+    }, 600);
+  } else {
+    btn.dataset.armed='1';
+    btn.classList.add('armed');
+    btn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Tap again to confirm`;
+    setTimeout(()=>{
+      if(btn.dataset.armed==='1'){
+        btn.dataset.armed='0';
+        btn.classList.remove('armed');
+        btn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Complete the Day`;
+      }
+    }, 3000);
+  }
+});
+
 /* ══ FILTER TABS ══════════════════════ */
 document.querySelector('.filter-tabs').addEventListener('click', e=>{
   const tab=e.target.closest('.tab'); if(!tab) return;
@@ -936,17 +970,17 @@ document.addEventListener('keydown', e=>{
   // nothing currently
 });
 
-/* ══ SESSION TIMER ════════════════════ */
-function tick(){
-  const left=Math.max(0,SH*3600000-(Date.now()-S.createdAt));
-  const h=Math.floor(left/3600000),m=Math.floor((left%3600000)/60000),s=Math.floor((left%60000)/1000);
-  document.getElementById('session-timer').textContent=
-    `Expires ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+/* ══ SAVED INDICATOR ════════════════ */
+function updateSavedAt(){
+  const el = document.getElementById('session-timer');
+  if(!S.savedAt){ el.textContent='not saved yet'; return; }
+  const d = new Date(S.savedAt);
+  el.textContent = 'saved '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
 }
 
 /* ══ BOOT ═════════════════════════════ */
-load(); renderAll(); tick();
-setInterval(tick, 1000);
+load(); renderAll(); updateSavedAt();
+setInterval(updateSavedAt, 10000);
 setInterval(save, 20000);
 </script>
 </body>
