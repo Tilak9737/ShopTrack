@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ShopTrack — Order Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e0e0f;--surface:#17171a;--card:#1e1e23;--border:#2e2e38;
+  --accent:#f5a623;--accent2:#e8673a;--green:#3ecf8e;--red:#f05d5d;
+  --blue:#5d9cf0;--muted:#6b6b80;--text:#e8e8f0;--subtext:#9898b0;
+  --mono:'JetBrains Mono',monospace;--display:'Syne',sans-serif;
+  --r:10px;--shadow:0 4px 24px rgba(0,0,0,.5);
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--display);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");}
+
+/* ── HEADER ────────────────────────── */
+header{position:sticky;top:0;z-index:200;background:rgba(14,14,15,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;}
+.logo{display:flex;align-items:center;gap:9px;font-size:1.15rem;font-weight:800;letter-spacing:-.5px}
+.logo-dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 9px var(--accent);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(.82)}}
+.hdr-right{display:flex;align-items:center;gap:12px}
+.chip{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:4px 12px;font-family:var(--mono);font-size:.72rem;color:var(--subtext);display:flex;align-items:center;gap:5px}
+.chip strong{color:var(--text);font-size:.82rem}
+#session-timer{font-family:var(--mono);font-size:.7rem;color:var(--muted)}
+
+/* ── MAIN ──────────────────────────── */
+main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:28px 20px 80px}
+
+/* ── BUTTONS ───────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:none;border-radius:var(--r);font-family:var(--display);font-weight:700;font-size:.83rem;cursor:pointer;transition:all .16s ease;letter-spacing:.2px;user-select:none}
+.btn:active{transform:scale(.95)}
+.btn-primary{background:var(--accent);color:#0e0e0f;box-shadow:0 0 18px rgba(245,166,35,.18)}
+.btn-primary:hover{background:#f7b94a;box-shadow:0 0 26px rgba(245,166,35,.32)}
+.btn-ghost{background:var(--card);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:rgba(240,93,93,.1);color:var(--red);border:1px solid rgba(240,93,93,.22)}
+.btn-danger:hover{background:rgba(240,93,93,.2)}
+.btn-success{background:rgba(62,207,142,.1);color:var(--green);border:1px solid rgba(62,207,142,.22)}
+.btn-success:hover{background:rgba(62,207,142,.2)}
+.btn-sm{padding:5px 11px;font-size:.76rem}
+
+/* ── SUMMARY ───────────────────────── */
+.summary-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:28px}
+.sc{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden}
+.sc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px}
+.sc.o::after{background:var(--accent)}.sc.g::after{background:var(--green)}
+.sc.r::after{background:var(--red)}.sc.b::after{background:var(--blue)}
+.sc-label{font-size:.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.sc-val{font-family:var(--mono);font-size:1.9rem;font-weight:700;line-height:1}
+.sc.o .sc-val{color:var(--accent)}.sc.g .sc-val{color:var(--green)}
+.sc.r .sc-val{color:var(--red)}.sc.b .sc-val{color:var(--blue)}
+
+/* ── TOOLBAR & FILTER ──────────────── */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.filter-tabs{display:flex;gap:4px;margin-bottom:20px;flex-wrap:wrap}
+.tab{padding:6px 15px;border-radius:7px;font-size:.76rem;font-weight:700;cursor:pointer;transition:all .14s;border:1px solid var(--border);background:var(--card);color:var(--subtext);letter-spacing:.3px;user-select:none}
+.tab.active{background:var(--accent);color:#0e0e0f;border-color:var(--accent)}
+.tab:not(.active):hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── GRID ──────────────────────────── */
+#customers-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(390px,1fr));gap:18px;align-items:start}
+
+/* ── CUSTOMER CARD ─────────────────── */
+.ccard{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:box-shadow .2s, border-color .3s;animation:slideIn .22s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.ccard:hover{box-shadow:var(--shadow)}
+.ccard.served{opacity:.5;border-color:rgba(62,207,142,.28)}
+.ccard.all-done{border-color:rgba(62,207,142,.6);box-shadow:0 0 0 1px rgba(62,207,142,.25), 0 8px 32px rgba(62,207,142,.08)}
+
+.ccard-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px;background:var(--surface);border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap}
+.cname-wrap{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.cavatar{width:30px;height:30px;border-radius:7px;flex-shrink:0;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.82rem;color:#0e0e0f}
+.cname-inp{background:transparent;border:none;outline:none;color:var(--text);font-family:var(--display);font-weight:700;font-size:.92rem;flex:1;min-width:0;border-bottom:1px dashed transparent;transition:border-color .2s;padding-bottom:1px}
+.cname-inp:focus{border-color:var(--accent)}
+.cname-inp::placeholder{color:var(--muted)}
+.served-badge{background:rgba(62,207,142,.15);color:var(--green);border:1px solid rgba(62,207,142,.28);border-radius:5px;font-size:.65rem;font-weight:700;padding:3px 7px;letter-spacing:.4px;text-transform:uppercase;flex-shrink:0}
+.ccard-actions{display:flex;gap:5px;flex-shrink:0}
+
+/* All-done prompt banner */
+.all-done-banner{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px;
+  background:linear-gradient(90deg, rgba(62,207,142,.12), rgba(62,207,142,.06));
+  border-bottom:1px solid rgba(62,207,142,.2);
+  gap:10px;
+}
+.all-done-text{font-size:.78rem;font-weight:700;color:var(--green);display:flex;align-items:center;gap:6px}
+.complete-cust-btn{
+  background:var(--green);color:#0a0a0b;
+  border:none;border-radius:7px;
+  font-family:var(--display);font-weight:800;font-size:.76rem;
+  padding:6px 14px;cursor:pointer;transition:all .15s;white-space:nowrap;
+  flex-shrink:0;
+}
+.complete-cust-btn:hover{background:#4dffaa;transform:translateY(-1px)}
+.complete-cust-btn:active{transform:scale(.94)}
+
+/* ── ITEMS LIST ───────────────────── */
+.items-list{padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.no-items{color:var(--muted);font-size:.8rem;text-align:center;padding:8px 0;font-style:italic}
+
+/* ── ITEM ROW — BASE ──────────────── */
+.item-row{
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--r);padding:12px 13px;
+  animation:fadeUp .18s ease;
+  transition:border-color .25s, background .25s;
+  position:relative;overflow:hidden;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── ITEM ROW — SERVED STATE ──────── */
+.item-row.item-done{
+  background:rgba(62,207,142,.04);
+  border-color:rgba(62,207,142,.35);
+}
+.item-row.item-done::before{
+  content:'';
+  position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--green);border-radius:3px 0 0 3px;
+}
+
+.item-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
+.item-name-inp{background:transparent;border:none;outline:none;color:var(--text);font-family:var(--display);font-weight:600;font-size:.86rem;flex:1;border-bottom:1px dashed transparent;transition:border-color .2s;padding-bottom:1px}
+.item-name-inp:focus{border-color:var(--accent)}
+.item-name-inp::placeholder{color:var(--muted)}
+.item-done .item-name-inp{color:var(--green);font-weight:700}
+
+.item-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.95rem;padding:2px 5px;transition:color .15s;flex-shrink:0;line-height:1}
+.item-del:hover{color:var(--red)}
+
+/* served badge inline with name */
+.item-served-badge{
+  background:rgba(62,207,142,.18);color:var(--green);
+  border:1px solid rgba(62,207,142,.3);border-radius:5px;
+  font-size:.62rem;font-weight:700;padding:2px 7px;
+  letter-spacing:.4px;text-transform:uppercase;flex-shrink:0;white-space:nowrap;
+}
+
+/* ── COST ROW — prominent ──────────── */
+.cost-row{
+  display:flex;align-items:center;gap:6px;margin-bottom:10px;
+  background:rgba(245,166,35,.06);
+  border:1px solid rgba(245,166,35,.22);
+  border-radius:8px;padding:8px 12px;
+}
+.cost-symbol{
+  font-family:var(--mono);font-size:1.3rem;font-weight:800;
+  color:var(--accent);flex-shrink:0;line-height:1;
+}
+.cost-inp{
+  background:transparent;border:none;outline:none;
+  color:var(--accent);font-family:var(--mono);font-weight:800;font-size:1.3rem;
+  width:110px;flex-shrink:0;
+  -moz-appearance:textfield;
+}
+.cost-inp::-webkit-outer-spin-button,
+.cost-inp::-webkit-inner-spin-button{-webkit-appearance:none}
+.cost-inp::placeholder{color:rgba(245,166,35,.3)}
+.cost-label{
+  font-size:.64rem;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;
+  margin-left:auto;
+}
+.cost-hint{
+  font-size:.71rem;color:var(--muted);font-style:italic;
+  margin-bottom:8px;font-family:var(--mono);padding:0 2px;
+}
+
+/* ── PROGRESS ──────────────────────── */
+.prog-wrap{margin-bottom:10px}
+.prog-labels{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.69rem;color:var(--subtext);margin-bottom:4px;gap:4px;flex-wrap:wrap}
+.gave-val{color:var(--green);font-weight:700}
+.remains-val{color:var(--red);font-weight:700}
+.pct-val{color:var(--muted)}
+.prog-track{height:5px;background:var(--border);border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--green),#4dffaa66);border-radius:99px;transition:width .3s ease}
+
+/* ── SERVED ITEM STATS (compact) ─── */
+.served-stats{
+  display:flex;align-items:center;gap:12px;margin-bottom:8px;
+  font-family:var(--mono);font-size:.72rem;color:var(--subtext);flex-wrap:wrap;
+}
+.served-stats strong{color:var(--green)}
+
+/* ── SERVE BUTTON (primary CTA) ───── */
+.serve-btn{
+  width:100%;padding:10px;
+  background:rgba(62,207,142,.1);
+  border:1.5px solid rgba(62,207,142,.35);
+  border-radius:8px;
+  color:var(--green);
+  font-family:var(--display);font-weight:800;font-size:.88rem;
+  cursor:pointer;transition:all .15s;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  letter-spacing:.3px;
+  user-select:none;
+}
+.serve-btn:hover{background:var(--green);color:#0a0a0b;border-color:var(--green);box-shadow:0 0 20px rgba(62,207,142,.25);transform:translateY(-1px)}
+.serve-btn:active{transform:scale(.97)}
+
+/* ── AMOUNT BUTTONS — always visible ── */
+.amt-section{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.amt-section-label{font-size:.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+.amt-row{display:flex;flex-wrap:wrap;gap:4px}
+.amt-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;font-family:var(--mono);font-weight:700;font-size:.7rem;padding:5px 8px;cursor:pointer;transition:all .13s;white-space:nowrap;user-select:none}
+.amt-btn:hover{background:var(--green);color:#0e0e0f;border-color:var(--green);transform:translateY(-1px)}
+.amt-btn:active{transform:scale(.9)}
+.custom-row{display:flex;gap:4px;align-items:center}
+.custom-inp{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;font-family:var(--mono);font-size:.74rem;padding:5px 8px;width:90px;outline:none;transition:border-color .2s}
+.custom-inp:focus{border-color:var(--accent)}
+.custom-inp::placeholder{color:var(--muted)}
+.confirm-btn{background:rgba(62,207,142,.12);border:1px solid rgba(62,207,142,.25);color:var(--green);border-radius:6px;font-family:var(--mono);font-weight:700;font-size:.72rem;padding:5px 10px;cursor:pointer;transition:all .13s;white-space:nowrap;user-select:none}
+.confirm-btn:hover{background:rgba(62,207,142,.25)}
+.confirm-btn:active{transform:scale(.93)}
+
+/* ── UNDO BUTTON ───────────────────── */
+.undo-btn{background:rgba(240,93,93,.08);border:1px solid rgba(240,93,93,.2);color:var(--red);border-radius:6px;font-family:var(--mono);font-weight:700;font-size:.68rem;padding:3px 9px;cursor:pointer;transition:all .13s;white-space:nowrap;user-select:none;margin-left:auto}
+.undo-btn:hover{background:rgba(240,93,93,.18)}
+.undo-btn:active{transform:scale(.93)}
+
+/* ── CARD FOOTER & TOTALS ─────────── */
+.ccard-footer{padding:10px 14px 13px;border-top:1px solid var(--border);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ccard-totals{display:flex;justify-content:space-around;align-items:center;padding:9px 16px;background:var(--surface);border-top:1px solid var(--border)}
+.ct-grp{display:flex;flex-direction:column;align-items:center;gap:2px}
+.ct-lbl{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-family:var(--mono)}
+.ct-val{font-family:var(--mono);font-weight:700;font-size:.9rem}
+.ct-val.orange{color:var(--accent)}.ct-val.green{color:var(--green)}.ct-val.red{color:var(--red)}
+
+/* ── EMPTY ─────────────────────────── */
+#empty-state{grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--muted);display:none}
+#empty-state.show{display:block}
+.empty-icon{font-size:3rem;margin-bottom:14px;opacity:.35}
+#empty-state h2{font-size:1.3rem;font-weight:700;margin-bottom:6px}
+#empty-state p{font-size:.82rem}
+
+/* ── MODAL ─────────────────────────── */
+.modal-bg{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-bg.open{opacity:1;pointer-events:all}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:26px;width:min(420px,92vw);transform:translateY(18px);transition:transform .2s;box-shadow:0 24px 60px rgba(0,0,0,.65)}
+.modal-bg.open .modal{transform:translateY(0)}
+.modal h2{font-size:1.1rem;font-weight:800;margin-bottom:18px}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:.72rem;font-weight:700;color:var(--subtext);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.fg input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--display);font-size:.88rem;padding:9px 13px;outline:none;transition:border-color .2s}
+.fg input:focus{border-color:var(--accent)}
+.modal-actions{display:flex;gap:8px;margin-top:18px;justify-content:flex-end}
+
+/* ── TOAST ─────────────────────────── */
+#toast{position:fixed;bottom:26px;right:26px;z-index:999;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:11px 18px;font-size:.8rem;font-weight:600;box-shadow:var(--shadow);transform:translateY(14px);opacity:0;transition:all .22s ease;pointer-events:none}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.ok{border-color:rgba(62,207,142,.35);color:var(--green)}
+#toast.warn{border-color:rgba(245,166,35,.35);color:var(--accent)}
+
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+@media(max-width:580px){
+  header{padding:0 14px}.chip{display:none}
+  main{padding:18px 10px 60px}
+  #customers-grid{grid-template-columns:1fr}
+  .summary-bar{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><div class="logo-dot"></div>ShopTrack</div>
+  <div class="hdr-right">
+    <div class="chip">Active <strong id="hdr-active">0</strong></div>
+    <div class="chip">Served <strong id="hdr-served">0</strong></div>
+    <span id="session-timer">--:--:--</span>
+  </div>
+</header>
+
+<main>
+  <div class="summary-bar">
+    <div class="sc o"><div class="sc-label">Total Ordered</div><div class="sc-val" id="sum-total">0</div></div>
+    <div class="sc g"><div class="sc-label">Total Gave</div><div class="sc-val" id="sum-gave">0</div></div>
+    <div class="sc r"><div class="sc-label">Remaining</div><div class="sc-val" id="sum-remains">0</div></div>
+    <div class="sc b"><div class="sc-label">Customers</div><div class="sc-val" id="sum-custs">0</div></div>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn btn-primary" id="btn-new">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Customer
+    </button>
+    <button class="btn btn-ghost" id="btn-clear">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+      Clear Served
+    </button>
+    <button class="btn btn-ghost" id="btn-export">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Export PDF
+    </button>
+  </div>
+
+  <div class="filter-tabs">
+    <div class="tab active" data-filter="all">All</div>
+    <div class="tab" data-filter="active">Active</div>
+    <div class="tab" data-filter="served">Served</div>
+  </div>
+
+  <div id="customers-grid">
+    <div id="empty-state">
+      <div class="empty-icon">🛒</div>
+      <h2>No customers yet</h2>
+      <p>Click <strong>New Customer</strong> to start tracking orders</p>
+    </div>
+  </div>
+</main>
+
+
+<div id="toast"></div>
+
+<script>
+/* ══ CONFIG ══════════════════════════ */
+const AMT  = [10,20,30,40,50,70,100,150,200];
+const SH   = 10;           // session hours
+const SKEY = 'shoptrack_v5';
+
+/* ══ STATE ═══════════════════════════ */
+let S = { customers:[], createdAt:Date.now(), custCount:0 };
+let activeFilter = 'all';
+
+// +buttons are always visible — no collapsed state needed
+
+/* ══ PERSIST ══════════════════════════ */
+function save(){
+  S.savedAt = Date.now();
+  try{ localStorage.setItem(SKEY, JSON.stringify(S)); }catch(e){}
+}
+function load(){
+  try{
+    const r = localStorage.getItem(SKEY); if(!r) return;
+    const d = JSON.parse(r);
+    if((Date.now()-(d.savedAt||0))/3600000 < SH) S = d;
+    else localStorage.removeItem(SKEY);
+  }catch(e){ localStorage.removeItem(SKEY); }
+}
+
+/* ══ UTILS ═══════════════════════════ */
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+let _tt;
+function toast(msg, type='ok'){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='show '+type;
+  clearTimeout(_tt); _tt=setTimeout(()=>el.className='',2600);
+}
+
+/* ══ LOOKUPS ══════════════════════════ */
+function gc(cid){ return S.customers.find(c=>c.id===cid); }
+function gi(cid,iid){ return gc(cid)?.items.find(i=>i.id===iid); }
+
+/* ══ MODAL ═══════════════════════════ */
+// (modal removed — customers created directly)
+
+/* ══ CUSTOMER ACTIONS ════════════════ */
+function createCustomer(){
+  S.custCount = (S.custCount||0)+1;
+  const name = 'Customer '+S.custCount;
+  S.customers.unshift({id:uid(),name,served:false,createdAt:Date.now(),items:[]});
+  save(); renderAll(); toast(name+' added!');
+}
+
+function removeCustomer(cid){
+  // Two-click guard — no confirm() (blocked in iframes)
+  const btn = document.querySelector(`[data-action="delcust"][data-cid="${cid}"]`);
+  if(!btn) return;
+  if(btn.dataset.armed==='1'){
+    S.customers = S.customers.filter(c=>c.id!==cid);
+    save(); renderAll(); toast('Customer removed','warn');
+  } else {
+    btn.dataset.armed='1';
+    btn.textContent='Sure?';
+    btn.style.background='rgba(240,93,93,.3)';
+    setTimeout(()=>{
+      if(btn&&btn.isConnected){ btn.dataset.armed='0'; btn.textContent='✕'; btn.style.background=''; }
+    },2500);
+  }
+}
+
+function toggleServed(cid){
+  const c=gc(cid); if(!c) return;
+  c.served=!c.served; save(); renderAll();
+  toast(c.served?'✅ Customer marked served':'Reopened');
+}
+
+function completeCustomer(cid){
+  // One-tap complete: marks all items served + customer served
+  const c=gc(cid); if(!c) return;
+  c.items.forEach(i=>{ i.served=true; if(i.total>0) i.gave=i.total; });
+  c.served=true;
+  save(); renderAll();
+  toast('🎉 '+c.name+' completed!');
+}
+
+/* ══ ITEM ACTIONS ════════════════════ */
+function addItem(cid){
+  const c=gc(cid); if(!c) return;
+  const newId=uid();
+  c.items.push({id:newId,name:'New Item',total:0,gave:0,served:false});
+  save(); rebuildCard(cid);
+  setTimeout(()=>{
+    const inp=document.querySelector(`#item-${cid}-${newId} .item-name-inp`);
+    if(inp){ inp.focus(); inp.select(); }
+  },50);
+}
+
+function removeItem(cid,iid){
+  const c=gc(cid); if(!c) return;
+  c.items=c.items.filter(i=>i.id!==iid);
+  save(); rebuildCard(cid);
+}
+
+function serveItem(cid,iid){
+  const item=gi(cid,iid); if(!item) return;
+  item.served = true;
+  item.gave   = item.total;   // gave = full cost when served
+  save(); rebuildCard(cid); updateSummary();
+  checkAllDone(cid);
+}
+
+function unserveItem(cid,iid){
+  const item=gi(cid,iid); if(!item) return;
+  item.served=false;
+  save(); rebuildCard(cid); updateSummary();
+}
+
+// (partial panel always open — no toggle needed)
+
+/* adds to COST (total) — what + buttons do */
+function addCost(cid,iid,amount){
+  const item=gi(cid,iid); if(!item) return;
+  item.total = item.total + amount;
+  save();
+  const row = document.getElementById('item-'+cid+'-'+iid);
+  if(row){
+    const inp = row.querySelector('.cost-inp');
+    if(inp) inp.value = item.total;
+    const serveBtn = row.querySelector('.serve-btn');
+    if(serveBtn) serveBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> SERVE &nbsp;•&nbsp; ₹${item.total}`;
+    const cr = row.querySelector('.cost-row');
+    if(cr){ cr.style.borderColor='var(--green)'; setTimeout(()=>cr.style.borderColor='',400); }
+  }
+  refreshCardTotals(cid); updateSummary();
+}
+
+function addCustomCost(cid,iid){
+  const inp=document.querySelector(`#item-${cid}-${iid} .custom-inp`);
+  if(!inp) return;
+  const v=parseInt(inp.value);
+  if(!v||v<=0){ inp.focus(); return; }
+  addCost(cid,iid,v); inp.value=''; inp.focus();
+}
+
+function setTotal(cid,iid,raw){
+  const item=gi(cid,iid); if(!item) return;
+  item.total=Math.max(0,parseInt(raw)||0);
+  save();
+  const row = document.getElementById('item-'+cid+'-'+iid);
+  if(row){
+    const serveBtn = row.querySelector('.serve-btn');
+    if(serveBtn) serveBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> SERVE &nbsp;•&nbsp; ₹${item.total}`;
+  }
+  refreshCardTotals(cid); updateSummary();
+}
+
+function setItemName(cid,iid,v){ const i=gi(cid,iid); if(i){i.name=v;save();} }
+function setCustName(cid,v){
+  const c=gc(cid); if(!c) return; c.name=v;
+  const av=document.querySelector('#card-'+cid+' .cavatar');
+  if(av) av.textContent=(v||'?')[0].toUpperCase();
+  save();
+}
+
+/* ══ CHECK ALL-DONE ══════════════════ */
+function checkAllDone(cid){
+  const c=gc(cid); if(!c||c.items.length===0) return;
+  if(c.items.every(i=>i.served) && !c.served){
+    toast('🎉 All items served — tap Complete!');
+    // The card will show the banner via rebuildCard
+  }
+}
+
+/* ══ SELECTIVE DOM UPDATES ═══════════ */
+function refreshItemStats(cid,iid){
+  const item=gi(cid,iid);
+  const row=document.getElementById('item-'+cid+'-'+iid);
+  if(!item||!row) return;
+  const rem=Math.max(0,item.total-item.gave);
+  const pct=item.total>0?Math.min(100,Math.round((item.gave/item.total)*100)):0;
+  const gv=row.querySelector('.gave-val');
+  const rv=row.querySelector('.remains-val');
+  const pv=row.querySelector('.pct-val');
+  const pf=row.querySelector('.prog-fill');
+  if(gv) gv.textContent='₹'+item.gave;
+  if(rv) rv.textContent='₹'+rem;
+  if(pv) pv.textContent=pct+'%';
+  if(pf) pf.style.width=pct+'%';
+}
+
+function refreshCardTotals(cid){
+  const c=gc(cid), el=document.getElementById('card-'+cid);
+  if(!c||!el) return;
+  const tot=c.items.reduce((s,i)=>s+i.total,0);
+  const gav=c.items.reduce((s,i)=>s+i.gave,0);
+  const t=el.querySelector('.ct-total');
+  const g=el.querySelector('.ct-gave');
+  const r=el.querySelector('.ct-rem');
+  if(t) t.textContent=tot;
+  if(g) g.textContent=gav;
+  if(r) r.textContent=Math.max(0,tot-gav);
+}
+
+/* ══ BUILD ITEM HTML ════════════════ */
+function itemHTML(cid, item){
+  const rem = Math.max(0, item.total-item.gave);
+  const pct = item.total>0 ? Math.min(100,Math.round((item.gave/item.total)*100)) : 0;
+
+  /* ── SERVED STATE ── */
+  if(item.served){
+    return `
+    <div class="item-row item-done" id="item-${cid}-${item.id}">
+      <div class="item-top">
+        <input class="item-name-inp" value="${esc(item.name)}" placeholder="Item name"
+          data-action="setname" data-cid="${cid}" data-iid="${item.id}"/>
+        <span class="item-served-badge">✓ Served</span>
+        <button class="item-del" data-action="delitem" data-cid="${cid}" data-iid="${item.id}" title="Remove">✕</button>
+      </div>
+      <div class="served-stats">
+        <span>Cost: <strong>₹${item.total}</strong></span>
+        <span>Gave: <strong>₹${item.gave}</strong></span>
+        <button class="undo-btn" data-action="unserve" data-cid="${cid}" data-iid="${item.id}">↩ Undo</button>
+      </div>
+      <div class="prog-track"><div class="prog-fill" style="width:100%"></div></div>
+    </div>`;
+  }
+
+  /* ── ACTIVE STATE ── */
+  const amtBtns = AMT.map(a=>
+    `<button class="amt-btn" data-action="addcost" data-cid="${cid}" data-iid="${item.id}" data-amt="${a}">+${a}</button>`
+  ).join('');
+
+  return `
+  <div class="item-row" id="item-${cid}-${item.id}">
+
+    <!-- NAME + DELETE -->
+    <div class="item-top">
+      <input class="item-name-inp" value="${esc(item.name)}" placeholder="Item name"
+        data-action="setname" data-cid="${cid}" data-iid="${item.id}"/>
+      <button class="item-del" data-action="delitem" data-cid="${cid}" data-iid="${item.id}" title="Remove">✕</button>
+    </div>
+
+    <!-- COST FIELD — type or use + buttons below -->
+    <div class="cost-row">
+      <span class="cost-symbol">₹</span>
+      <input class="cost-inp" type="number" value="${item.total||''}" min="0" placeholder="0"
+        data-action="settotal" data-cid="${cid}" data-iid="${item.id}"/>
+      <span class="cost-label">item cost</span>
+    </div>
+
+    <!-- + SHORTCUTS — tap to add to cost -->
+    <div class="amt-section">
+      <div class="amt-section-label">Quick add to cost:</div>
+      <div class="amt-row">${amtBtns}</div>
+      <div class="custom-row">
+        <input class="custom-inp" type="number" min="1" placeholder="other amount…"
+          data-cid="${cid}" data-iid="${item.id}"/>
+        <button class="confirm-btn" data-action="addcost-custom" data-cid="${cid}" data-iid="${item.id}">+ Add</button>
+      </div>
+    </div>
+
+    <!-- SERVE = mark as given/done -->
+    <button class="serve-btn" data-action="serve" data-cid="${cid}" data-iid="${item.id}">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+      SERVE  •  ₹${item.total||0}
+    </button>
+
+  </div>`;
+}
+
+/* ══ BUILD CARD HTML ════════════════ */
+function cardHTML(c){
+  const tot = c.items.reduce((s,i)=>s+i.total,0);
+  const gav = c.items.reduce((s,i)=>s+i.gave,0);
+  const rem = Math.max(0, tot-gav);
+
+  // All-done detection: all items exist and all are served, but customer not yet closed
+  const allDone = c.items.length>0 && c.items.every(i=>i.served) && !c.served;
+
+  const itemsHTML = c.items.length
+    ? c.items.map(i=>itemHTML(c.id,i)).join('')
+    : '<div class="no-items">No items yet — click Add Item below</div>';
+
+  return `
+  <div class="ccard${c.served?' served':''}${allDone?' all-done':''}" id="card-${c.id}">
+    <div class="ccard-hdr">
+      <div class="cname-wrap">
+        <div class="cavatar">${(c.name||'?')[0].toUpperCase()}</div>
+        <input class="cname-inp" value="${esc(c.name)}" placeholder="Customer name"
+          data-action="setcname" data-cid="${c.id}"/>
+      </div>
+      ${c.served?'<span class="served-badge">✓ Served</span>':''}
+      <div class="ccard-actions">
+        <button class="btn btn-sm btn-success" data-action="toggleserved" data-cid="${c.id}"
+          title="${c.served?'Reopen':'Mark customer served'}">${c.served?'↺':'✓'}</button>
+        <button class="btn btn-sm btn-danger" data-action="delcust" data-cid="${c.id}" title="Remove customer">✕</button>
+      </div>
+    </div>
+
+    ${allDone ? `
+    <div class="all-done-banner">
+      <div class="all-done-text">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+        All items served!
+      </div>
+      <button class="complete-cust-btn" data-action="completecust" data-cid="${c.id}">
+        Complete Customer →
+      </button>
+    </div>` : ''}
+
+    <div class="items-list">${itemsHTML}</div>
+
+    <div class="ccard-footer">
+      <button class="btn btn-ghost btn-sm" data-action="additem" data-cid="${c.id}">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Item
+      </button>
+    </div>
+
+    <div class="ccard-totals">
+      <div class="ct-grp"><span class="ct-lbl">Total</span><span class="ct-val orange ct-total">${tot}</span></div>
+      <div class="ct-grp"><span class="ct-lbl">Gave</span><span class="ct-val green ct-gave">${gav}</span></div>
+      <div class="ct-grp"><span class="ct-lbl">Remains</span><span class="ct-val red ct-rem">${rem}</span></div>
+    </div>
+  </div>`;
+}
+
+/* ══ REBUILD CARD ═════════════════════ */
+function rebuildCard(cid){
+  const c=gc(cid), el=document.getElementById('card-'+cid);
+  if(!c||!el){ renderAll(); return; }
+  const tmp=document.createElement('div');
+  tmp.innerHTML=cardHTML(c);
+  el.replaceWith(tmp.firstElementChild);
+  updateSummary();
+}
+
+/* ══ RENDER ALL ═══════════════════════ */
+function filtered(){
+  if(activeFilter==='active') return S.customers.filter(c=>!c.served);
+  if(activeFilter==='served') return S.customers.filter(c=> c.served);
+  return S.customers;
+}
+function renderAll(){
+  const grid=document.getElementById('customers-grid');
+  grid.querySelectorAll('.ccard').forEach(e=>e.remove());
+  document.getElementById('empty-state').classList.toggle('show',S.customers.length===0);
+  filtered().forEach(c=>{
+    const tmp=document.createElement('div');
+    tmp.innerHTML=cardHTML(c);
+    grid.appendChild(tmp.firstElementChild);
+  });
+  updateSummary();
+}
+
+/* ══ SUMMARY ══════════════════════════ */
+function updateSummary(){
+  let tot=0,gav=0;
+  S.customers.forEach(c=>c.items.forEach(i=>{tot+=i.total;gav+=i.gave;}));
+  document.getElementById('sum-total').textContent   = tot;
+  document.getElementById('sum-gave').textContent    = gav;
+  document.getElementById('sum-remains').textContent = Math.max(0, tot-gav);
+  document.getElementById('sum-custs').textContent   = S.customers.length;
+  document.getElementById('hdr-active').textContent  = S.customers.filter(c=>!c.served).length;
+  document.getElementById('hdr-served').textContent  = S.customers.filter(c=> c.served).length;
+}
+
+/* ══ EVENT DELEGATION ═════════════════ */
+const grid = document.getElementById('customers-grid');
+
+grid.addEventListener('click', e=>{
+  const btn=e.target.closest('[data-action]'); if(!btn) return;
+  const {action,cid,iid,amt}=btn.dataset;
+  if(action==='serve')        serveItem(cid,iid);
+  if(action==='unserve')      unserveItem(cid,iid);
+  if(action==='addcost')      addCost(cid,iid,parseInt(amt));
+  if(action==='addcost-custom') addCustomCost(cid,iid);
+  if(action==='delitem')      removeItem(cid,iid);
+  if(action==='delcust')      removeCustomer(cid);
+  if(action==='toggleserved') toggleServed(cid);
+  if(action==='additem')      addItem(cid);
+  if(action==='completecust') completeCustomer(cid);
+});
+
+grid.addEventListener('change', e=>{
+  const el=e.target;
+  if(el.matches('.cost-inp'))      setTotal(el.dataset.cid, el.dataset.iid, el.value);
+  if(el.matches('.item-name-inp')) setItemName(el.dataset.cid, el.dataset.iid, el.value);
+  if(el.matches('.cname-inp'))     setCustName(el.dataset.cid, el.value);
+});
+
+grid.addEventListener('keydown', e=>{
+  if(e.key==='Enter' && e.target.matches('.custom-inp'))
+    addCustomGave(e.target.dataset.cid, e.target.dataset.iid);
+});
+
+/* ══ TOOLBAR ══════════════════════════ */
+document.getElementById('btn-new').addEventListener('click', createCustomer);
+
+document.getElementById('btn-clear').addEventListener('click',()=>{
+  const n=S.customers.filter(c=>c.served).length;
+  if(!n){ toast('No served customers to clear','warn'); return; }
+  // Two-tap guard
+  const btn=document.getElementById('btn-clear');
+  if(btn.dataset.armed==='1'){
+    S.customers=S.customers.filter(c=>!c.served);
+    save(); renderAll(); toast(n+' customer(s) cleared');
+    btn.dataset.armed='0'; btn.textContent='Clear Served'; btn.style.color='';
+  } else {
+    btn.dataset.armed='1';
+    btn.textContent='Confirm clear '+n+'?';
+    btn.style.color='var(--red)';
+    setTimeout(()=>{
+      if(btn){ btn.dataset.armed='0'; btn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg> Clear Served`; btn.style.color=''; }
+    },2500);
+  }
+});
+
+document.getElementById('btn-export').addEventListener('click', exportPDF);
+
+function exportPDF(){
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  const timeStr = now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+
+  let totalCost=0, totalGave=0;
+  S.customers.forEach(c=>c.items.forEach(i=>{totalCost+=i.total;totalGave+=i.gave;}));
+  const totalRem = Math.max(0, totalCost-totalGave);
+
+  // Build customer rows
+  let rows = '';
+  S.customers.forEach(c=>{
+    const cTot = c.items.reduce((s,i)=>s+i.total,0);
+    const cGav = c.items.reduce((s,i)=>s+i.gave,0);
+    const cRem = Math.max(0,cTot-cGav);
+    const status = c.served ? 'Served' : 'Active';
+    const statusColor = c.served ? '#3ecf8e' : '#f5a623';
+
+    if(!c.items.length){
+      rows += `
+      <tr class="cust-row">
+        <td><span class="cust-name">${esc(c.name)}</span></td>
+        <td><span class="badge" style="background:${statusColor}20;color:${statusColor};border:1px solid ${statusColor}44">${status}</span></td>
+        <td class="item-name muted">—</td>
+        <td class="num">₹0</td><td class="num">₹0</td><td class="num">₹0</td>
+      </tr>`;
+    } else {
+      c.items.forEach((item,idx)=>{
+        const iRem = Math.max(0,item.total-item.gave);
+        const iStatus = item.served ? '✓' : '…';
+        const iColor  = item.served ? '#3ecf8e' : '#9898b0';
+        rows += `
+        <tr class="${idx===0?'cust-row':'cont-row'}">
+          ${idx===0?`<td rowspan="${c.items.length}"><span class="cust-name">${esc(c.name)}</span></td>
+          <td rowspan="${c.items.length}"><span class="badge" style="background:${statusColor}20;color:${statusColor};border:1px solid ${statusColor}44">${status}</span></td>`:''}
+          <td class="item-name"><span style="color:${iColor};margin-right:5px">${iStatus}</span>${esc(item.name)}</td>
+          <td class="num">₹${item.total}</td>
+          <td class="num grn">₹${item.gave}</td>
+          <td class="num ${iRem>0?'red':'grn'}">₹${iRem}</td>
+        </tr>`;
+      });
+    }
+    // subtotal row if multiple items
+    if(c.items.length > 1){
+      rows += `
+      <tr class="subtotal-row">
+        <td colspan="2" style="text-align:right;font-size:.7rem;color:#6b6b80;font-style:italic">subtotal</td>
+        <td class="num"><strong>₹${cTot}</strong></td>
+        <td class="num grn"><strong>₹${cGav}</strong></td>
+        <td class="num ${cRem>0?'red':'grn'}"><strong>₹${cRem}</strong></td>
+      </tr>`;
+    }
+  });
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<title>ShopTrack Report — ${dateStr}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Syne',sans-serif;background:#fff;color:#1a1a2e;padding:32px 40px;font-size:13px}
+  
+  /* HEADER */
+  .report-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:20px;border-bottom:2px solid #f5a623}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand-dot{width:12px;height:12px;border-radius:50%;background:#f5a623}
+  .brand-name{font-size:1.5rem;font-weight:800;letter-spacing:-.5px;color:#0e0e0f}
+  .brand-sub{font-size:.72rem;color:#9898b0;font-family:'JetBrains Mono',monospace;margin-top:2px}
+  .report-meta{text-align:right;font-family:'JetBrains Mono',monospace;font-size:.72rem;color:#6b6b80;line-height:1.7}
+  .report-meta strong{color:#0e0e0f;font-size:.8rem}
+
+  /* SUMMARY CARDS */
+  .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}
+  .scard{border-radius:10px;padding:14px 16px;border:1px solid #e8e8f0}
+  .scard.o{background:#fff8ee;border-color:#f5a62340}
+  .scard.g{background:#f0fdf6;border-color:#3ecf8e40}
+  .scard.r{background:#fff2f2;border-color:#f05d5d40}
+  .scard.b{background:#f0f5ff;border-color:#5d9cf040}
+  .scard-lbl{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+  .scard.o .scard-lbl{color:#c47d0a}
+  .scard.g .scard-lbl{color:#1a9967}
+  .scard.r .scard-lbl{color:#c43e3e}
+  .scard.b .scard-lbl{color:#2d72c4}
+  .scard-val{font-family:'JetBrains Mono',monospace;font-size:1.4rem;font-weight:700;line-height:1}
+  .scard.o .scard-val{color:#f5a623}
+  .scard.g .scard-val{color:#3ecf8e}
+  .scard.r .scard-val{color:#f05d5d}
+  .scard.b .scard-val{color:#5d9cf0}
+
+  /* TABLE */
+  .section-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9898b0;margin-bottom:10px}
+  table{width:100%;border-collapse:collapse;font-size:.82rem}
+  thead th{background:#0e0e0f;color:#fff;padding:9px 12px;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+  thead th.num{text-align:right}
+  tbody tr{border-bottom:1px solid #f0f0f5}
+  tbody tr:last-child{border-bottom:none}
+  td{padding:8px 12px;vertical-align:middle}
+  .cust-row td{background:#fafafa}
+  .cont-row td{background:#fff}
+  .subtotal-row td{background:#f5f5fa;border-top:1px dashed #ddd}
+  .cust-name{font-weight:700;font-size:.88rem;color:#0e0e0f}
+  .item-name{color:#444;font-size:.8rem}
+  .muted{color:#aaa}
+  .num{text-align:right;font-family:'JetBrains Mono',monospace;font-weight:600}
+  .grn{color:#1a9967}
+  .red{color:#c43e3e}
+  .badge{border-radius:5px;font-size:.62rem;font-weight:700;padding:2px 7px;letter-spacing:.3px;text-transform:uppercase;white-space:nowrap}
+
+  /* GRAND TOTAL */
+  .grand-total{margin-top:16px;background:#0e0e0f;border-radius:10px;padding:14px 20px;display:flex;justify-content:flex-end;gap:32px;color:#fff}
+  .gt-grp{text-align:right}
+  .gt-lbl{font-size:.6rem;text-transform:uppercase;letter-spacing:.8px;color:#6b6b80;margin-bottom:2px}
+  .gt-val{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:1.1rem}
+  .gt-val.o{color:#f5a623}.gt-val.g{color:#3ecf8e}.gt-val.r{color:#f05d5d}
+
+  /* FOOTER */
+  .report-footer{margin-top:24px;text-align:center;font-size:.65rem;color:#ccc;font-family:'JetBrains Mono',monospace;border-top:1px solid #f0f0f5;padding-top:14px}
+
+  @media print{
+    body{padding:20px 28px}
+    @page{margin:1cm;size:A4}
+  }
+</style>
+</head>
+<body>
+
+<div class="report-hdr">
+  <div>
+    <div class="brand">
+      <div class="brand-dot"></div>
+      <div class="brand-name">ShopTrack</div>
+    </div>
+    <div class="brand-sub">Order Report</div>
+  </div>
+  <div class="report-meta">
+    <div><strong>${dateStr}</strong></div>
+    <div>${timeStr}</div>
+    <div>${S.customers.length} customer(s) &nbsp;·&nbsp; ${S.customers.filter(c=>c.served).length} served</div>
+  </div>
+</div>
+
+<div class="summary">
+  <div class="scard o"><div class="scard-lbl">Total Cost</div><div class="scard-val">₹${totalCost}</div></div>
+  <div class="scard g"><div class="scard-lbl">Total Gave</div><div class="scard-val">₹${totalGave}</div></div>
+  <div class="scard r"><div class="scard-lbl">Remaining</div><div class="scard-val">₹${totalRem}</div></div>
+  <div class="scard b"><div class="scard-lbl">Customers</div><div class="scard-val">${S.customers.length}</div></div>
+</div>
+
+<div class="section-title">Order Details</div>
+<table>
+  <thead>
+    <tr>
+      <th>Customer</th>
+      <th>Status</th>
+      <th>Item</th>
+      <th class="num">Cost</th>
+      <th class="num">Gave</th>
+      <th class="num">Remains</th>
+    </tr>
+  </thead>
+  <tbody>${rows}</tbody>
+</table>
+
+<div class="grand-total">
+  <div class="gt-grp"><div class="gt-lbl">Total Cost</div><div class="gt-val o">₹${totalCost}</div></div>
+  <div class="gt-grp"><div class="gt-lbl">Total Gave</div><div class="gt-val g">₹${totalGave}</div></div>
+  <div class="gt-grp"><div class="gt-lbl">Remaining</div><div class="gt-val r">₹${totalRem}</div></div>
+</div>
+
+<div class="report-footer">Generated by ShopTrack &nbsp;·&nbsp; ${dateStr} ${timeStr} &nbsp;·&nbsp; Use browser Print → Save as PDF</div>
+
+<script>window.onload=()=>window.print()<\/script>
+</body>
+</html>`;
+
+  const w = window.open('','_blank','width=900,height=700');
+  if(!w){ toast('Allow popups to export PDF','warn'); return; }
+  w.document.write(html);
+  w.document.close();
+  toast('PDF preview opened!');
+}
+
+/* ══ FILTER TABS ══════════════════════ */
+document.querySelector('.filter-tabs').addEventListener('click', e=>{
+  const tab=e.target.closest('.tab'); if(!tab) return;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  tab.classList.add('active');
+  activeFilter=tab.dataset.filter;
+  renderAll();
+});
+
+/* ══ KEYBOARD ════════════════════════ */
+document.addEventListener('keydown', e=>{
+  // nothing currently
+});
+
+/* ══ SESSION TIMER ════════════════════ */
+function tick(){
+  const left=Math.max(0,SH*3600000-(Date.now()-S.createdAt));
+  const h=Math.floor(left/3600000),m=Math.floor((left%3600000)/60000),s=Math.floor((left%60000)/1000);
+  document.getElementById('session-timer').textContent=
+    `Expires ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+/* ══ BOOT ═════════════════════════════ */
+load(); renderAll(); tick();
+setInterval(tick, 1000);
+setInterval(save, 20000);
+</script>
+</body>
+</html>
