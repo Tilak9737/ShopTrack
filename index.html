@@ -43,6 +43,7 @@ main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:28px 20p
 .btn-danger:hover{background:rgba(240,93,93,.2)}
 .btn-success{background:rgba(62,207,142,.1);color:var(--green);border:1px solid rgba(62,207,142,.22)}
 .btn-success:hover{background:rgba(62,207,142,.2)}
+.btn-sm{padding:5px 11px;font-size:.76rem}
 .btn-end-day{background:rgba(240,93,93,.1);color:var(--red);border:1px solid rgba(240,93,93,.3)}
 .btn-end-day:hover{background:rgba(240,93,93,.22);border-color:var(--red)}
 .btn-end-day.armed{background:var(--red);color:#fff;border-color:var(--red);animation:urgentPulse .6s infinite alternate}
@@ -75,6 +76,13 @@ main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:28px 20p
 .ccard:hover{box-shadow:var(--shadow)}
 .ccard.served{opacity:.5;border-color:rgba(62,207,142,.28)}
 .ccard.all-done{border-color:rgba(62,207,142,.6);box-shadow:0 0 0 1px rgba(62,207,142,.25), 0 8px 32px rgba(62,207,142,.08)}
+.ccard.pay-ok{border-color:rgba(62,207,142,.4)}
+.ccard.pay-partial{border-color:rgba(245,166,35,.4)}
+.ccard.pay-none{border-color:rgba(240,93,93,.35)}
+/* inline payment badge in header */
+.pay-status-badge.paid{background:rgba(62,207,142,.15);color:var(--green);border:1px solid rgba(62,207,142,.3);border-radius:5px;font-size:.62rem;font-weight:700;padding:2px 7px;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
+.pay-status-badge.partial{background:rgba(245,166,35,.15);color:var(--accent);border:1px solid rgba(245,166,35,.3);border-radius:5px;font-size:.62rem;font-weight:700;padding:2px 7px;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
+.pay-status-badge.unpaid{background:rgba(240,93,93,.12);color:var(--red);border:1px solid rgba(240,93,93,.28);border-radius:5px;font-size:.62rem;font-weight:700;padding:2px 7px;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
 
 .ccard-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px;background:var(--surface);border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap}
 .cname-wrap{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
@@ -134,6 +142,39 @@ main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:28px 20p
 .item-name-inp:focus{border-color:var(--accent)}
 .item-name-inp::placeholder{color:var(--muted)}
 .item-done .item-name-inp{color:var(--green);font-weight:700}
+
+/* ── AUTOCOMPLETE ──────────────────── */
+.ac-wrap{position:relative;flex:1;min-width:0}
+.ac-dropdown{
+  position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:300;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:8px;overflow:hidden;
+  box-shadow:0 8px 24px rgba(0,0,0,.5);
+  display:none;
+}
+.ac-dropdown.open{display:block}
+.ac-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px;gap:8px;
+  font-size:.82rem;
+  border-bottom:1px solid var(--border);
+}
+.ac-item:last-child{border-bottom:none}
+.ac-item-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.ac-item-name{font-weight:700;color:var(--text);white-space:nowrap}
+.ac-item-name em{color:var(--accent);font-style:normal}
+.ac-item-type{font-size:.66rem;color:var(--muted);font-family:var(--mono);white-space:nowrap}
+.ac-item-price{font-family:var(--mono);font-weight:800;font-size:.8rem;color:var(--accent);white-space:nowrap;margin-left:4px}
+.ac-qty-btns{display:flex;gap:3px;flex-shrink:0}
+.ac-qty{
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--subtext);border-radius:5px;
+  font-family:var(--mono);font-weight:700;font-size:.68rem;
+  padding:4px 6px;cursor:pointer;transition:all .12s;
+  white-space:nowrap;line-height:1;
+}
+.ac-qty:hover{background:var(--accent);color:#0e0e0f;border-color:var(--accent);transform:translateY(-1px)}
+.ac-qty:active{transform:scale(.9)}
 
 .item-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.95rem;padding:2px 5px;transition:color .15s;flex-shrink:0;line-height:1}
 .item-del:hover{color:var(--red)}
@@ -228,6 +269,25 @@ main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:28px 20p
 .undo-btn:hover{background:rgba(240,93,93,.18)}
 .undo-btn:active{transform:scale(.93)}
 
+/* ── PAID BUTTON ───────────────────── */
+.paid-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 18px;border-radius:8px;
+  font-family:var(--display);font-weight:800;font-size:.82rem;
+  cursor:pointer;transition:all .18s;letter-spacing:.3px;
+  user-select:none;
+  background:rgba(240,93,93,.1);
+  border:1.5px solid rgba(240,93,93,.35);
+  color:var(--red);
+}
+.paid-btn:hover{background:rgba(240,93,93,.2);transform:translateY(-1px)}
+.paid-btn:active{transform:scale(.95)}
+.paid-btn.is-paid{
+  background:rgba(62,207,142,.12);
+  border-color:rgba(62,207,142,.45);
+  color:var(--green);
+}
+
 /* ── CARD FOOTER & TOTALS ─────────── */
 .ccard-footer{padding:10px 14px 13px;border-top:1px solid var(--border);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .ccard-totals{display:flex;justify-content:space-around;align-items:center;padding:9px 16px;background:var(--surface);border-top:1px solid var(--border)}
@@ -288,9 +348,9 @@ main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:28px 20p
 
 <main>
   <div class="summary-bar">
-    <div class="sc o"><div class="sc-label">Total Ordered</div><div class="sc-val" id="sum-total">0</div></div>
-    <div class="sc g"><div class="sc-label">Total Gave</div><div class="sc-val" id="sum-gave">0</div></div>
-    <div class="sc r"><div class="sc-label">Remaining</div><div class="sc-val" id="sum-remains">0</div></div>
+    <div class="sc o"><div class="sc-label">Total Billed</div><div class="sc-val" id="sum-total">₹0</div></div>
+    <div class="sc g"><div class="sc-label">Collected</div><div class="sc-val" id="sum-gave">₹0</div></div>
+    <div class="sc r"><div class="sc-label">Pending</div><div class="sc-val" id="sum-remains">₹0</div></div>
     <div class="sc b"><div class="sc-label">Customers</div><div class="sc-val" id="sum-custs">0</div></div>
   </div>
 
@@ -313,6 +373,7 @@ main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:28px 20p
     <div class="tab active" data-filter="all">All</div>
     <div class="tab" data-filter="active">Active</div>
     <div class="tab" data-filter="served">Served</div>
+    <div class="tab" data-filter="unpaid">Unpaid 💰</div>
   </div>
 
   <div id="customers-grid">
@@ -331,6 +392,34 @@ main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:28px 20p
 /* ══ CONFIG ══════════════════════════ */
 const AMT  = [10,20,30,40,50,70,100,150,200];
 const SKEY = 'shoptrack_v5';
+
+/* ══ MENU (Shri Hari Ice Gola) ════════ */
+const MENU = [
+  {name:'Orange',        type:'Plain',      price:30},
+  {name:'Orange',        type:'Mava-Malai', price:50},
+  {name:'Kala Khatta',   type:'Plain',      price:30},
+  {name:'Kala Khatta',   type:'Mava-Malai', price:50},
+  {name:'Kaccha Aam',    type:'Plain',      price:30},
+  {name:'Kaccha Aam',    type:'Mava-Malai', price:50},
+  {name:'Kothu',         type:'Plain',      price:30},
+  {name:'Kothu',         type:'Mava-Malai', price:50},
+  {name:'Pineapple',     type:'Plain',      price:30},
+  {name:'Pineapple',     type:'Mava-Malai', price:50},
+  {name:'Rose',          type:'Plain',      price:30},
+  {name:'Rose',          type:'Mava-Malai', price:50},
+  {name:'Mango',         type:'Plain',      price:30},
+  {name:'Mango',         type:'Mava-Malai', price:50},
+  {name:'Blueberry',     type:'Plain',      price:30},
+  {name:'Blueberry',     type:'Mava-Malai', price:60},
+  {name:'Rimzim',        type:'Plain',      price:30},
+  {name:'Rimzim',        type:'Mava-Malai', price:60},
+  {name:'Chocolate',     type:'Plain',      price:40},
+  {name:'Chocolate',     type:'Mava-Malai', price:60},
+  {name:'Raj Bhog',      type:'Plain',      price:40},
+  {name:'Raj Bhog',      type:'Mava-Malai', price:60},
+  {name:'Rainbow',       type:'Plain',      price:50},
+  {name:'Rainbow',       type:'Mava-Malai', price:70},
+];
 
 /* ══ STATE ═══════════════════════════ */
 let S = { customers:[], createdAt:Date.now(), custCount:0 };
@@ -373,7 +462,7 @@ function gi(cid,iid){ return gc(cid)?.items.find(i=>i.id===iid); }
 function createCustomer(){
   S.custCount = (S.custCount||0)+1;
   const name = 'Customer '+S.custCount;
-  S.customers.unshift({id:uid(),name,served:false,createdAt:Date.now(),items:[]});
+  S.customers.unshift({id:uid(),name,served:false,createdAt:Date.now(),items:[],paid:0});
   save(); renderAll(); toast(name+' added!');
 }
 
@@ -488,6 +577,34 @@ function setCustName(cid,v){
   save();
 }
 
+/* ══ PAYMENT ACTIONS ══════════════════ */
+function billTotal(c){ return c.items.reduce((s,i)=>s+i.total,0); }
+function payStatus(c){ return c.paid ? 'paid' : 'unpaid'; }
+
+function togglePaid(cid){
+  const c=gc(cid); if(!c) return;
+  c.paid = c.paid ? 0 : 1;  // 1=paid, 0=unpaid
+  save();
+  // update just the button + card border without full rebuild
+  const card = document.getElementById('card-'+cid);
+  if(card){
+    const btn = card.querySelector('.paid-btn');
+    if(btn){
+      if(c.paid){
+        btn.classList.add('is-paid');
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> PAID';
+      } else {
+        btn.classList.remove('is-paid');
+        btn.innerHTML = '💳 PAID?';
+      }
+    }
+    card.classList.toggle('pay-ok', !!c.paid);
+    card.classList.toggle('pay-none', !c.paid);
+  }
+  updateSummary();
+  toast(c.paid ? '💚 Payment received!' : 'Marked unpaid', c.paid ? 'ok' : 'warn');
+}
+
 /* ══ CHECK ALL-DONE ══════════════════ */
 function checkAllDone(cid){
   const c=gc(cid); if(!c||c.items.length===0) return;
@@ -559,10 +676,14 @@ function itemHTML(cid, item){
   return `
   <div class="item-row" id="item-${cid}-${item.id}">
 
-    <!-- NAME + DELETE -->
+    <!-- NAME + AUTOCOMPLETE + DELETE -->
     <div class="item-top">
-      <input class="item-name-inp" value="${esc(item.name)}" placeholder="Item name"
-        data-action="setname" data-cid="${cid}" data-iid="${item.id}"/>
+      <div class="ac-wrap">
+        <input class="item-name-inp" value="${esc(item.name)}" placeholder="Type to search menu…"
+          data-action="setname" data-cid="${cid}" data-iid="${item.id}"
+          autocomplete="off"/>
+        <div class="ac-dropdown" id="ac-${cid}-${item.id}"></div>
+      </div>
       <button class="item-del" data-action="delitem" data-cid="${cid}" data-iid="${item.id}" title="Remove">✕</button>
     </div>
 
@@ -596,19 +717,25 @@ function itemHTML(cid, item){
 
 /* ══ BUILD CARD HTML ════════════════ */
 function cardHTML(c){
-  const tot = c.items.reduce((s,i)=>s+i.total,0);
-  const gav = c.items.reduce((s,i)=>s+i.gave,0);
-  const rem = Math.max(0, tot-gav);
-
-  // All-done detection: all items exist and all are served, but customer not yet closed
-  const allDone = c.items.length>0 && c.items.every(i=>i.served) && !c.served;
+  const tot      = c.items.reduce((s,i)=>s+i.total,0);
+  const allDone  = c.items.length>0 && c.items.every(i=>i.served) && !c.served;
+  const payClass = c.paid ? ' pay-ok' : ' pay-none';
 
   const itemsHTML = c.items.length
     ? c.items.map(i=>itemHTML(c.id,i)).join('')
     : '<div class="no-items">No items yet — click Add Item below</div>';
 
+  const allDoneBanner = allDone
+    ? '<div class="all-done-banner"><div class="all-done-text"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>All items served!</div>'
+      + '<button class="complete-cust-btn" data-action="completecust" data-cid="'+c.id+'">Complete →</button></div>'
+    : '';
+
+  const paidBtnInner = c.paid
+    ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> PAID'
+    : '💳 PAID?';
+
   return `
-  <div class="ccard${c.served?' served':''}${allDone?' all-done':''}" id="card-${c.id}">
+  <div class="ccard${c.served?' served':''}${payClass}" id="card-${c.id}">
     <div class="ccard-hdr">
       <div class="cname-wrap">
         <div class="cavatar">${(c.name||'?')[0].toUpperCase()}</div>
@@ -623,16 +750,7 @@ function cardHTML(c){
       </div>
     </div>
 
-    ${allDone ? `
-    <div class="all-done-banner">
-      <div class="all-done-text">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-        All items served!
-      </div>
-      <button class="complete-cust-btn" data-action="completecust" data-cid="${c.id}">
-        Complete Customer →
-      </button>
-    </div>` : ''}
+    ${allDoneBanner}
 
     <div class="items-list">${itemsHTML}</div>
 
@@ -644,9 +762,12 @@ function cardHTML(c){
     </div>
 
     <div class="ccard-totals">
-      <div class="ct-grp"><span class="ct-lbl">Total</span><span class="ct-val orange ct-total">${tot}</span></div>
-      <div class="ct-grp"><span class="ct-lbl">Gave</span><span class="ct-val green ct-gave">${gav}</span></div>
-      <div class="ct-grp"><span class="ct-lbl">Remains</span><span class="ct-val red ct-rem">${rem}</span></div>
+      <div class="ct-grp"><span class="ct-lbl">Bill</span><span class="ct-val orange ct-total">₹${tot}</span></div>
+      <div class="ct-grp">
+        <button class="paid-btn${c.paid?' is-paid':''}" data-action="togglepaid" data-cid="${c.id}">
+          ${paidBtnInner}
+        </button>
+      </div>
     </div>
   </div>`;
 }
@@ -665,6 +786,7 @@ function rebuildCard(cid){
 function filtered(){
   if(activeFilter==='active') return S.customers.filter(c=>!c.served);
   if(activeFilter==='served') return S.customers.filter(c=> c.served);
+  if(activeFilter==='unpaid') return S.customers.filter(c=> payStatus(c)!=='paid');
   return S.customers;
 }
 function renderAll(){
@@ -681,14 +803,98 @@ function renderAll(){
 
 /* ══ SUMMARY ══════════════════════════ */
 function updateSummary(){
-  let tot=0,gav=0;
-  S.customers.forEach(c=>c.items.forEach(i=>{tot+=i.total;gav+=i.gave;}));
-  document.getElementById('sum-total').textContent   = tot;
-  document.getElementById('sum-gave').textContent    = gav;
-  document.getElementById('sum-remains').textContent = Math.max(0, tot-gav);
+  let billed=0, collected=0;
+  S.customers.forEach(c=>{
+    const b = c.items.reduce((s,i)=>s+i.total,0);
+    billed += b;
+    if(c.paid) collected += b;
+  });
+  document.getElementById('sum-total').textContent   = '₹'+billed;
+  document.getElementById('sum-gave').textContent    = '₹'+collected;
+  document.getElementById('sum-remains').textContent = '₹'+Math.max(0,billed-collected);
   document.getElementById('sum-custs').textContent   = S.customers.length;
   document.getElementById('hdr-active').textContent  = S.customers.filter(c=>!c.served).length;
   document.getElementById('hdr-served').textContent  = S.customers.filter(c=> c.served).length;
+}
+
+/* ══ AUTOCOMPLETE ENGINE ══════════════ */
+function menuSearch(q){
+  if(!q||q.length<1) return [];
+  const lq = q.toLowerCase();
+  return MENU.filter(m=>
+    m.name.toLowerCase().includes(lq) ||
+    m.type.toLowerCase().includes(lq) ||
+    (m.name+' '+m.type).toLowerCase().includes(lq)
+  ).slice(0,8);
+}
+
+function highlightMatch(text, q){
+  if(!q) return esc(text);
+  const idx = text.toLowerCase().indexOf(q.toLowerCase());
+  if(idx<0) return esc(text);
+  return esc(text.slice(0,idx))
+    + '<em>'+esc(text.slice(idx,idx+q.length))+'</em>'
+    + esc(text.slice(idx+q.length));
+}
+
+function applyMenuItem(cid, iid, menuItem, qty, inp, dd){
+  const totalPrice = menuItem.price * qty;
+  const label = qty > 1
+    ? menuItem.name+' ('+menuItem.type+') ×'+qty
+    : menuItem.name+' ('+menuItem.type+')';
+  inp.value = label;
+  setItemName(cid, iid, label);
+  const item = gi(cid,iid);
+  if(item){ item.total = totalPrice; save(); }
+  const row = document.getElementById('item-'+cid+'-'+iid);
+  if(row){
+    const ci = row.querySelector('.cost-inp');
+    if(ci) ci.value = totalPrice;
+    const sb = row.querySelector('.serve-btn');
+    if(sb) sb.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> SERVE &nbsp;•&nbsp; ₹'+totalPrice;
+    const cr = row.querySelector('.cost-row');
+    if(cr){ cr.style.borderColor='var(--green)'; setTimeout(()=>cr.style.borderColor='',400); }
+  }
+  refreshCardTotals(cid); updateSummary();
+  dd.classList.remove('open'); dd.innerHTML='';
+}
+
+function showAutocomplete(inp, cid, iid){
+  const q  = inp.value.trim();
+  const dd = document.getElementById('ac-'+cid+'-'+iid);
+  if(!dd) return;
+  const results = menuSearch(q);
+  if(!results.length || !q){ dd.classList.remove('open'); dd.innerHTML=''; return; }
+
+  dd.innerHTML = results.map((m,i)=>{
+    const qtyBtns = [1,2,3,4,5].map(n=>
+      '<button class="ac-qty" data-ridx="'+i+'" data-qty="'+n+'">×'+n+'</button>'
+    ).join('');
+    return '<div class="ac-item" data-idx="'+i+'">'
+      + '<div class="ac-item-left">'
+      + '<span class="ac-item-name">'+highlightMatch(m.name,q)+'</span>'
+      + '<span class="ac-item-type">'+m.type+'</span>'
+      + '<span class="ac-item-price">₹'+m.price+'</span>'
+      + '</div>'
+      + '<div class="ac-qty-btns">'+qtyBtns+'</div>'
+      + '</div>';
+  }).join('');
+  dd.classList.add('open');
+
+  // qty button clicks
+  dd.querySelectorAll('.ac-qty').forEach(btn=>{
+    btn.addEventListener('mousedown', e=>{
+      e.preventDefault();
+      const m   = results[parseInt(btn.dataset.ridx)];
+      const qty = parseInt(btn.dataset.qty);
+      applyMenuItem(cid, iid, m, qty, inp, dd);
+    });
+  });
+}
+
+function hideAutocomplete(cid, iid){
+  const dd = document.getElementById('ac-'+cid+'-'+iid);
+  if(dd){ dd.classList.remove('open'); dd.innerHTML=''; }
 }
 
 /* ══ EVENT DELEGATION ═════════════════ */
@@ -697,15 +903,16 @@ const grid = document.getElementById('customers-grid');
 grid.addEventListener('click', e=>{
   const btn=e.target.closest('[data-action]'); if(!btn) return;
   const {action,cid,iid,amt}=btn.dataset;
-  if(action==='serve')        serveItem(cid,iid);
-  if(action==='unserve')      unserveItem(cid,iid);
-  if(action==='addcost')      addCost(cid,iid,parseInt(amt));
+  if(action==='serve')          serveItem(cid,iid);
+  if(action==='unserve')        unserveItem(cid,iid);
+  if(action==='addcost')        addCost(cid,iid,parseInt(amt));
   if(action==='addcost-custom') addCustomCost(cid,iid);
-  if(action==='delitem')      removeItem(cid,iid);
-  if(action==='delcust')      removeCustomer(cid);
-  if(action==='toggleserved') toggleServed(cid);
-  if(action==='additem')      addItem(cid);
-  if(action==='completecust') completeCustomer(cid);
+  if(action==='delitem')        removeItem(cid,iid);
+  if(action==='delcust')        removeCustomer(cid);
+  if(action==='toggleserved')   toggleServed(cid);
+  if(action==='additem')        addItem(cid);
+  if(action==='completecust')   completeCustomer(cid);
+  if(action==='togglepaid')     togglePaid(cid);
 });
 
 grid.addEventListener('change', e=>{
@@ -715,9 +922,25 @@ grid.addEventListener('change', e=>{
   if(el.matches('.cname-inp'))     setCustName(el.dataset.cid, el.value);
 });
 
+grid.addEventListener('input', e=>{
+  const el = e.target;
+  if(el.matches('.item-name-inp')){
+    showAutocomplete(el, el.dataset.cid, el.dataset.iid);
+  }
+});
+
+grid.addEventListener('focusout', e=>{
+  if(e.target.matches('.item-name-inp')){
+    setTimeout(()=>hideAutocomplete(e.target.dataset.cid, e.target.dataset.iid), 150);
+  }
+});
+
 grid.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && e.target.matches('.item-name-inp')){
+    hideAutocomplete(e.target.dataset.cid, e.target.dataset.iid);
+  }
   if(e.key==='Enter' && e.target.matches('.custom-inp'))
-    addCustomGave(e.target.dataset.cid, e.target.dataset.iid);
+    addCustomCost(e.target.dataset.cid, e.target.dataset.iid);
 });
 
 /* ══ TOOLBAR ══════════════════════════ */
@@ -749,52 +972,56 @@ function exportPDF(){
   const dateStr = now.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
   const timeStr = now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
 
-  let totalCost=0, totalGave=0;
-  S.customers.forEach(c=>c.items.forEach(i=>{totalCost+=i.total;totalGave+=i.gave;}));
-  const totalRem = Math.max(0, totalCost-totalGave);
+  let totalCost=0, totalPaid=0;
+  S.customers.forEach(c=>{
+    c.items.forEach(i=>totalCost+=i.total);
+    totalPaid+=(c.paid||0);
+  });
+  const totalRem = Math.max(0, totalCost-totalPaid);
 
   // Build customer rows
   let rows = '';
   S.customers.forEach(c=>{
-    const cTot = c.items.reduce((s,i)=>s+i.total,0);
-    const cGav = c.items.reduce((s,i)=>s+i.gave,0);
-    const cRem = Math.max(0,cTot-cGav);
+    const cTot  = c.items.reduce((s,i)=>s+i.total,0);
+    const cPaid = c.paid||0;
+    const cBal  = cTot-cPaid;
+    const pSt   = payStatus(c);
+    const pColor= pSt==='paid'?'#3ecf8e': pSt==='partial'?'#f5a623':'#f05d5d';
+    const pLabel= pSt==='paid'?'✓ Paid': pSt==='partial'?'Partial':'Unpaid';
     const status = c.served ? 'Served' : 'Active';
     const statusColor = c.served ? '#3ecf8e' : '#f5a623';
 
     if(!c.items.length){
-      rows += `
-      <tr class="cust-row">
-        <td><span class="cust-name">${esc(c.name)}</span></td>
-        <td><span class="badge" style="background:${statusColor}20;color:${statusColor};border:1px solid ${statusColor}44">${status}</span></td>
-        <td class="item-name muted">—</td>
-        <td class="num">₹0</td><td class="num">₹0</td><td class="num">₹0</td>
-      </tr>`;
+      rows += '<tr class="cust-row">'
+        + '<td><span class="cust-name">'+esc(c.name)+'</span></td>'
+        + '<td><span class="badge" style="background:'+statusColor+'20;color:'+statusColor+'">'+status+'</span></td>'
+        + '<td class="item-name muted">—</td>'
+        + '<td class="num">₹0</td>'
+        + '<td class="num">₹'+cPaid+'</td>'
+        + '<td class="num '+(cBal>0?'red':'grn')+'">₹'+Math.max(0,cBal)+'</td>'
+        + '<td><span class="badge" style="background:'+pColor+'20;color:'+pColor+'">'+pLabel+'</span></td>'
+        + '</tr>';
     } else {
       c.items.forEach((item,idx)=>{
-        const iRem = Math.max(0,item.total-item.gave);
         const iStatus = item.served ? '✓' : '…';
         const iColor  = item.served ? '#3ecf8e' : '#9898b0';
-        rows += `
-        <tr class="${idx===0?'cust-row':'cont-row'}">
-          ${idx===0?`<td rowspan="${c.items.length}"><span class="cust-name">${esc(c.name)}</span></td>
-          <td rowspan="${c.items.length}"><span class="badge" style="background:${statusColor}20;color:${statusColor};border:1px solid ${statusColor}44">${status}</span></td>`:''}
-          <td class="item-name"><span style="color:${iColor};margin-right:5px">${iStatus}</span>${esc(item.name)}</td>
-          <td class="num">₹${item.total}</td>
-          <td class="num grn">₹${item.gave}</td>
-          <td class="num ${iRem>0?'red':'grn'}">₹${iRem}</td>
-        </tr>`;
+        const trClass = idx===0 ? 'cust-row' : 'cont-row';
+        const custCells = idx===0
+          ? '<td rowspan="'+c.items.length+'"><span class="cust-name">'+esc(c.name)+'</span></td>'
+            + '<td rowspan="'+c.items.length+'"><span class="badge" style="background:'+statusColor+'20;color:'+statusColor+'">'+status+'</span></td>'
+          : '';
+        const payCells = idx===0
+          ? '<td rowspan="'+c.items.length+'" class="num grn">₹'+cPaid+'</td>'
+            + '<td rowspan="'+c.items.length+'" class="num '+(cBal>0?'red':'grn')+'">₹'+Math.max(0,cBal)+'</td>'
+            + '<td rowspan="'+c.items.length+'"><span class="badge" style="background:'+pColor+'20;color:'+pColor+'">'+pLabel+'</span></td>'
+          : '';
+        rows += '<tr class="'+trClass+'">'
+          + custCells
+          + '<td class="item-name"><span style="color:'+iColor+';margin-right:5px">'+iStatus+'</span>'+esc(item.name)+'</td>'
+          + '<td class="num">₹'+item.total+'</td>'
+          + payCells
+          + '</tr>';
       });
-    }
-    // subtotal row if multiple items
-    if(c.items.length > 1){
-      rows += `
-      <tr class="subtotal-row">
-        <td colspan="2" style="text-align:right;font-size:.7rem;color:#6b6b80;font-style:italic">subtotal</td>
-        <td class="num"><strong>₹${cTot}</strong></td>
-        <td class="num grn"><strong>₹${cGav}</strong></td>
-        <td class="num ${cRem>0?'red':'grn'}"><strong>₹${cRem}</strong></td>
-      </tr>`;
     }
   });
 
@@ -888,9 +1115,9 @@ function exportPDF(){
 </div>
 
 <div class="summary">
-  <div class="scard o"><div class="scard-lbl">Total Cost</div><div class="scard-val">₹${totalCost}</div></div>
-  <div class="scard g"><div class="scard-lbl">Total Gave</div><div class="scard-val">₹${totalGave}</div></div>
-  <div class="scard r"><div class="scard-lbl">Remaining</div><div class="scard-val">₹${totalRem}</div></div>
+  <div class="scard o"><div class="scard-lbl">Total Billed</div><div class="scard-val">₹${totalCost}</div></div>
+  <div class="scard g"><div class="scard-lbl">Collected</div><div class="scard-val">₹${totalPaid}</div></div>
+  <div class="scard r"><div class="scard-lbl">Pending</div><div class="scard-val">₹${totalRem}</div></div>
   <div class="scard b"><div class="scard-lbl">Customers</div><div class="scard-val">${S.customers.length}</div></div>
 </div>
 
@@ -901,18 +1128,19 @@ function exportPDF(){
       <th>Customer</th>
       <th>Status</th>
       <th>Item</th>
-      <th class="num">Cost</th>
-      <th class="num">Gave</th>
-      <th class="num">Remains</th>
+      <th class="num">Item Cost</th>
+      <th class="num">Paid</th>
+      <th class="num">Balance</th>
+      <th>Payment</th>
     </tr>
   </thead>
   <tbody>${rows}</tbody>
 </table>
 
 <div class="grand-total">
-  <div class="gt-grp"><div class="gt-lbl">Total Cost</div><div class="gt-val o">₹${totalCost}</div></div>
-  <div class="gt-grp"><div class="gt-lbl">Total Gave</div><div class="gt-val g">₹${totalGave}</div></div>
-  <div class="gt-grp"><div class="gt-lbl">Remaining</div><div class="gt-val r">₹${totalRem}</div></div>
+  <div class="gt-grp"><div class="gt-lbl">Total Billed</div><div class="gt-val o">₹${totalCost}</div></div>
+  <div class="gt-grp"><div class="gt-lbl">Collected</div><div class="gt-val g">₹${totalPaid}</div></div>
+  <div class="gt-grp"><div class="gt-lbl">Pending</div><div class="gt-val r">₹${totalRem}</div></div>
 </div>
 
 <div class="report-footer">Generated by ShopTrack &nbsp;·&nbsp; ${dateStr} ${timeStr} &nbsp;·&nbsp; Use browser Print → Save as PDF</div>
