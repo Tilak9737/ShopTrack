@@ -252,6 +252,8 @@ main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:28px 20p
 /* ── AMOUNT BUTTONS — always visible ── */
 .amt-section{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
 .amt-section-label{font-size:.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+.edit-cost-btn{background:none;border:none;color:var(--muted);font-family:var(--mono);font-size:.68rem;cursor:pointer;padding:2px 0 6px;transition:color .15s;display:block}
+.edit-cost-btn:hover{color:var(--accent)}
 .amt-row{display:flex;flex-wrap:wrap;gap:4px}
 .amt-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;font-family:var(--mono);font-weight:700;font-size:.7rem;padding:5px 8px;cursor:pointer;transition:all .13s;white-space:nowrap;user-select:none}
 .amt-btn:hover{background:var(--green);color:#0e0e0f;border-color:var(--green);transform:translateY(-1px)}
@@ -451,8 +453,8 @@ const MENU = [
   {name:'Shree Hari Sp. Ice Dish',     type:'Matka Small',    price:160},
   {name:'Shree Hari Sp. Ice Dish',     type:'Matka Large',    price:200},
   // ➕ EXTRA TOPPINGS
-  {name:'Mava Malai',                  type:'Topping Mava Malai',        price:20},
-  {name:'Chocolate Deep',              type:'Topping Chocolate Dip',        price:20},
+  {name:'Mava Malai',                  type:'Topping',        price:20},
+  {name:'Chocolate Deep',              type:'Topping',        price:20},
   {name:'Toppings',                    type:'Topping',        price:10},
 ];
 
@@ -753,8 +755,8 @@ function itemHTML(cid, item){
       </button>
     </div>
 
-    <!-- + SHORTCUTS — tap to add to cost -->
-    <div class="amt-section">
+    <!-- + SHORTCUTS — hidden once cost is set -->
+    <div class="amt-section" id="amts-${cid}-${item.id}" style="${item.total>0?'display:none':''}">
       <div class="amt-section-label">Quick add to cost:</div>
       <div class="amt-row">${amtBtns}</div>
       <div class="custom-row">
@@ -763,6 +765,7 @@ function itemHTML(cid, item){
         <button class="confirm-btn" data-action="addcost-custom" data-cid="${cid}" data-iid="${item.id}">+ Add</button>
       </div>
     </div>
+    ${item.total>0?`<button class="edit-cost-btn" data-action="showcost" data-cid="${cid}" data-iid="${item.id}">✏️ change cost</button>`:''}
 
     <!-- SERVE = mark as given/done -->
     <button class="serve-btn" data-action="serve" data-cid="${cid}" data-iid="${item.id}">
@@ -915,6 +918,11 @@ function applyMenuItem(cid, iid, menuItem, qty, inp, dd){
   }
   refreshCardTotals(cid); updateSummary();
   dd.classList.remove('open'); dd.innerHTML='';
+  // hide quick-cost picker since cost is now set
+  const amts = document.getElementById('amts-'+cid+'-'+iid);
+  if(amts) amts.style.display='none';
+  const editBtn = document.querySelector('#item-'+cid+'-'+iid+' .edit-cost-btn');
+  if(editBtn) editBtn.style.display='';
 }
 
 function showAutocomplete(inp, cid, iid){
@@ -966,6 +974,11 @@ grid.addEventListener('click', e=>{
   if(action==='addcost')        addCost(cid,iid,parseInt(amt));
   if(action==='addcost-custom') addCustomCost(cid,iid);
   if(action==='toggleparcel')   toggleParcel(cid,iid);
+  if(action==='showcost'){
+    const s=document.getElementById('amts-'+cid+'-'+iid);
+    const b=e.target.closest('[data-action]');
+    if(s){ s.style.display=''; if(b) b.style.display='none'; }
+  }
   if(action==='delitem')        removeItem(cid,iid);
   if(action==='delcust')        removeCustomer(cid);
   if(action==='toggleserved')   toggleServed(cid);
