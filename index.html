@@ -269,6 +269,22 @@ main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:28px 20p
 .undo-btn:hover{background:rgba(240,93,93,.18)}
 .undo-btn:active{transform:scale(.93)}
 
+/* ── PARCEL BUTTON ─────────────────── */
+.parcel-btn{
+  display:inline-flex;align-items:center;gap:4px;
+  background:transparent;border:1px dashed var(--border);
+  color:var(--muted);border-radius:6px;
+  font-family:var(--mono);font-weight:700;font-size:.68rem;
+  padding:3px 8px;cursor:pointer;transition:all .15s;
+  white-space:nowrap;user-select:none;
+}
+.parcel-btn:hover{border-color:var(--blue);color:var(--blue)}
+.parcel-btn.is-parcel{
+  background:rgba(93,156,240,.1);
+  border:1px solid rgba(93,156,240,.4);
+  color:var(--blue);
+}
+
 /* ── PAID BUTTON ───────────────────── */
 .paid-btn{
   display:inline-flex;align-items:center;gap:6px;
@@ -395,30 +411,49 @@ const SKEY = 'shoptrack_v5';
 
 /* ══ MENU (Shri Hari Ice Gola) ════════ */
 const MENU = [
-  {name:'Orange',        type:'Plain',      price:30},
-  {name:'Orange',        type:'Mava-Malai', price:50},
-  {name:'Kala Khatta',   type:'Plain',      price:30},
-  {name:'Kala Khatta',   type:'Mava-Malai', price:50},
-  {name:'Kaccha Aam',    type:'Plain',      price:30},
-  {name:'Kaccha Aam',    type:'Mava-Malai', price:50},
-  {name:'Kothu',         type:'Plain',      price:30},
-  {name:'Kothu',         type:'Mava-Malai', price:50},
-  {name:'Pineapple',     type:'Plain',      price:30},
-  {name:'Pineapple',     type:'Mava-Malai', price:50},
-  {name:'Rose',          type:'Plain',      price:30},
-  {name:'Rose',          type:'Mava-Malai', price:50},
-  {name:'Mango',         type:'Plain',      price:30},
-  {name:'Mango',         type:'Mava-Malai', price:50},
-  {name:'Blueberry',     type:'Plain',      price:30},
-  {name:'Blueberry',     type:'Mava-Malai', price:60},
-  {name:'Rimzim',        type:'Plain',      price:30},
-  {name:'Rimzim',        type:'Mava-Malai', price:60},
-  {name:'Chocolate',     type:'Plain',      price:40},
-  {name:'Chocolate',     type:'Mava-Malai', price:60},
-  {name:'Raj Bhog',      type:'Plain',      price:40},
-  {name:'Raj Bhog',      type:'Mava-Malai', price:60},
-  {name:'Rainbow',       type:'Plain',      price:50},
-  {name:'Rainbow',       type:'Mava-Malai', price:70},
+  // 🍧 ICE GOLA — Plain
+  {name:'Orange',                      type:'Plain',          price:30},
+  {name:'Orange',                      type:'Mava-Malai',     price:50},
+  {name:'Kala Khatta',                 type:'Plain',          price:30},
+  {name:'Kala Khatta',                 type:'Mava-Malai',     price:50},
+  {name:'Kaccha Aam',                  type:'Plain',          price:30},
+  {name:'Kaccha Aam',                  type:'Mava-Malai',     price:50},
+  {name:'Kothu',                       type:'Plain',          price:30},
+  {name:'Kothu',                       type:'Mava-Malai',     price:50},
+  {name:'Pineapple',                   type:'Plain',          price:30},
+  {name:'Pineapple',                   type:'Mava-Malai',     price:50},
+  {name:'Rose',                        type:'Plain',          price:30},
+  {name:'Rose',                        type:'Mava-Malai',     price:50},
+  {name:'Mango',                       type:'Plain',          price:30},
+  {name:'Mango',                       type:'Mava-Malai',     price:50},
+  {name:'Blueberry',                   type:'Plain',          price:30},
+  {name:'Blueberry',                   type:'Mava-Malai',     price:60},
+  {name:'Rimzim',                      type:'Plain',          price:30},
+  {name:'Rimzim',                      type:'Mava-Malai',     price:60},
+  {name:'Chocolate',                   type:'Plain',          price:40},
+  {name:'Chocolate',                   type:'Mava-Malai',     price:60},
+  {name:'Raj Bhog',                    type:'Plain',          price:40},
+  {name:'Raj Bhog',                    type:'Mava-Malai',     price:60},
+  {name:'Rainbow',                     type:'Plain',          price:50},
+  {name:'Rainbow',                     type:'Mava-Malai',     price:70},
+  // 🍨 SPECIAL DISH — Ice Cream Dish
+  {name:'Dry Fruit Dish',              type:'Sp. Dish',       price:80},
+  {name:'Dry Fruit Dish',              type:'Ice Cream Dish', price:110},
+  {name:'Dry Fruit Rabdi Ice Dish',    type:'Sp. Dish',       price:100},
+  {name:'Dry Fruit Rabdi Ice Dish',    type:'Ice Cream Dish', price:120},
+  {name:'Rainbow Rabdi Ice Dish',      type:'Sp. Dish',       price:100},
+  {name:'Rainbow Rabdi Ice Dish',      type:'Ice Cream Dish', price:120},
+  {name:'Chocolate Ice Dish',          type:'Sp. Dish',       price:100},
+  {name:'Chocolate Ice Dish',          type:'Ice Cream Dish', price:120},
+  {name:'Kit-Kat Chocolate Sp. Dish',  type:'Sp. Dish',       price:120},
+  {name:'Kit-Kat Chocolate Sp. Dish',  type:'Ice Cream Dish', price:150},
+  // 🏺 MATKA DISH
+  {name:'Shree Hari Sp. Ice Dish',     type:'Matka Small',    price:160},
+  {name:'Shree Hari Sp. Ice Dish',     type:'Matka Large',    price:200},
+  // ➕ EXTRA TOPPINGS
+  {name:'Mava Malai',                  type:'Topping Mava Malai',        price:20},
+  {name:'Chocolate Deep',              type:'Topping Chocolate Dip',        price:20},
+  {name:'Toppings',                    type:'Topping',        price:10},
 ];
 
 /* ══ STATE ═══════════════════════════ */
@@ -460,8 +495,14 @@ function gi(cid,iid){ return gc(cid)?.items.find(i=>i.id===iid); }
 
 /* ══ CUSTOMER ACTIONS ════════════════ */
 function createCustomer(){
-  S.custCount = (S.custCount||0)+1;
-  const name = 'Customer '+S.custCount;
+  // find lowest number not already in use
+  const used = new Set(S.customers.map(c=>{
+    const m = c.name.match(/^Customer (\d+)$/);
+    return m ? parseInt(m[1]) : null;
+  }).filter(n=>n!==null));
+  let n = 1;
+  while(used.has(n)) n++;
+  const name = 'Customer '+n;
   S.customers.unshift({id:uid(),name,served:false,createdAt:Date.now(),items:[],paid:0});
   save(); renderAll(); toast(name+' added!');
 }
@@ -570,6 +611,19 @@ function setTotal(cid,iid,raw){
 }
 
 function setItemName(cid,iid,v){ const i=gi(cid,iid); if(i){i.name=v;save();} }
+
+function toggleParcel(cid,iid){
+  const item=gi(cid,iid); if(!item) return;
+  item.parcel = !item.parcel;
+  save();
+  const row = document.getElementById('item-'+cid+'-'+iid);
+  if(!row) return;
+  const btn = row.querySelector('.parcel-btn');
+  if(btn){
+    btn.classList.toggle('is-parcel', !!item.parcel);
+    btn.innerHTML = item.parcel ? '📦 Parcel' : '📦 Parcel?';
+  }
+}
 function setCustName(cid,v){
   const c=gc(cid); if(!c) return; c.name=v;
   const av=document.querySelector('#card-'+cid+' .cavatar');
@@ -657,6 +711,7 @@ function itemHTML(cid, item){
         <input class="item-name-inp" value="${esc(item.name)}" placeholder="Item name"
           data-action="setname" data-cid="${cid}" data-iid="${item.id}"/>
         <span class="item-served-badge">✓ Served</span>
+        ${item.parcel?'<span style="background:rgba(93,156,240,.12);color:var(--blue);border:1px solid rgba(93,156,240,.3);border-radius:5px;font-size:.62rem;font-weight:700;padding:2px 7px;white-space:nowrap">📦 Parcel</span>':''}
         <button class="item-del" data-action="delitem" data-cid="${cid}" data-iid="${item.id}" title="Remove">✕</button>
       </div>
       <div class="served-stats">
@@ -693,6 +748,9 @@ function itemHTML(cid, item){
       <input class="cost-inp" type="number" value="${item.total||''}" min="0" placeholder="0"
         data-action="settotal" data-cid="${cid}" data-iid="${item.id}"/>
       <span class="cost-label">item cost</span>
+      <button class="parcel-btn${item.parcel?' is-parcel':''}" data-action="toggleparcel" data-cid="${cid}" data-iid="${item.id}">
+        ${item.parcel?'📦 Parcel':'📦 Parcel?'}
+      </button>
     </div>
 
     <!-- + SHORTCUTS — tap to add to cost -->
@@ -907,6 +965,7 @@ grid.addEventListener('click', e=>{
   if(action==='unserve')        unserveItem(cid,iid);
   if(action==='addcost')        addCost(cid,iid,parseInt(amt));
   if(action==='addcost-custom') addCustomCost(cid,iid);
+  if(action==='toggleparcel')   toggleParcel(cid,iid);
   if(action==='delitem')        removeItem(cid,iid);
   if(action==='delcust')        removeCustomer(cid);
   if(action==='toggleserved')   toggleServed(cid);
@@ -974,8 +1033,9 @@ function exportPDF(){
 
   let totalCost=0, totalPaid=0;
   S.customers.forEach(c=>{
-    c.items.forEach(i=>totalCost+=i.total);
-    totalPaid+=(c.paid||0);
+    const b = c.items.reduce((s,i)=>s+i.total,0);
+    totalCost += b;
+    if(c.paid) totalPaid += b;   // paid is boolean 1/0, not money amount
   });
   const totalRem = Math.max(0, totalCost-totalPaid);
 
@@ -983,11 +1043,11 @@ function exportPDF(){
   let rows = '';
   S.customers.forEach(c=>{
     const cTot  = c.items.reduce((s,i)=>s+i.total,0);
-    const cPaid = c.paid||0;
-    const cBal  = cTot-cPaid;
-    const pSt   = payStatus(c);
-    const pColor= pSt==='paid'?'#3ecf8e': pSt==='partial'?'#f5a623':'#f05d5d';
-    const pLabel= pSt==='paid'?'✓ Paid': pSt==='partial'?'Partial':'Unpaid';
+    const cPaid = c.paid ? cTot : 0;   // paid=1 means full bill paid
+    const cBal  = cTot - cPaid;
+    const pSt   = c.paid ? 'paid' : 'unpaid';
+    const pColor= c.paid ? '#3ecf8e' : '#f05d5d';
+    const pLabel= c.paid ? '✓ Paid' : 'Unpaid';
     const status = c.served ? 'Served' : 'Active';
     const statusColor = c.served ? '#3ecf8e' : '#f5a623';
 
@@ -1017,7 +1077,7 @@ function exportPDF(){
           : '';
         rows += '<tr class="'+trClass+'">'
           + custCells
-          + '<td class="item-name"><span style="color:'+iColor+';margin-right:5px">'+iStatus+'</span>'+esc(item.name)+'</td>'
+          + '<td class="item-name"><span style="color:'+iColor+';margin-right:5px">'+iStatus+'</span>'+esc(item.name)+(item.parcel?' <span style="background:#5d9cf020;color:#5d9cf0;border:1px solid #5d9cf040;border-radius:4px;font-size:.6rem;padding:1px 5px;font-weight:700;letter-spacing:.3px">📦 PARCEL</span>':'')+'</td>'
           + '<td class="num">₹'+item.total+'</td>'
           + payCells
           + '</tr>';
