@@ -287,7 +287,6 @@ main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:28px 20p
   color:var(--blue);
 }
 
-/* ── PAID BUTTON ───────────────────── */
 .paid-btn{
   display:inline-flex;align-items:center;gap:6px;
   padding:7px 18px;border-radius:8px;
@@ -305,6 +304,20 @@ main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:28px 20p
   border-color:rgba(62,207,142,.45);
   color:var(--green);
 }
+
+/* ── PAYMENT METHOD BUTTONS ────────── */
+.pay-method-row{display:flex;gap:5px;justify-content:center}
+.pay-method-btn{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:5px 13px;border-radius:7px;
+  font-family:var(--display);font-weight:800;font-size:.74rem;
+  cursor:pointer;transition:all .15s;user-select:none;
+  background:var(--surface);border:1.5px solid var(--border);color:var(--muted);
+  letter-spacing:.2px;
+}
+.pay-method-btn:hover{border-color:var(--accent);color:var(--accent)}
+.pay-method-btn.active-cash{background:rgba(62,207,142,.12);border-color:rgba(62,207,142,.5);color:var(--green)}
+.pay-method-btn.active-upi{background:rgba(93,156,240,.12);border-color:rgba(93,156,240,.5);color:var(--blue)}
 
 /* ── CARD FOOTER & TOTALS ─────────── */
 .ccard-footer{padding:10px 14px 13px;border-top:1px solid var(--border);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
@@ -348,6 +361,7 @@ main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:28px 20p
   .summary-bar{grid-template-columns:repeat(2,1fr)}
 }
 </style>
+<!-- end styles -->
 </head>
 <body>
 
@@ -528,13 +542,19 @@ function removeCustomer(cid){
 
 function toggleServed(cid){
   const c=gc(cid); if(!c) return;
+  // block marking served if not paid (only when trying to serve, not when reopening)
+  if(!c.served && !c.paid){
+    toast('💳 Mark as paid first!','warn'); return;
+  }
   c.served=!c.served; save(); renderAll();
   toast(c.served?'✅ Customer marked served':'Reopened');
 }
 
 function completeCustomer(cid){
-  // One-tap complete: marks all items served + customer served
   const c=gc(cid); if(!c) return;
+  if(!c.paid){
+    toast('💳 Mark as paid first!','warn'); return;
+  }
   c.items.forEach(i=>{ i.served=true; if(i.total>0) i.gave=i.total; });
   c.served=true;
   save(); renderAll();
@@ -639,23 +659,26 @@ function payStatus(c){ return c.paid ? 'paid' : 'unpaid'; }
 
 function togglePaid(cid){
   const c=gc(cid); if(!c) return;
-  c.paid = c.paid ? 0 : 1;  // 1=paid, 0=unpaid
+  c.paid = c.paid ? 0 : 1;
+  if(!c.paid) c.payMethod=null; // clear method when unpaid
   save();
-  // update just the button + card border without full rebuild
   const card = document.getElementById('card-'+cid);
   if(card){
     const btn = card.querySelector('.paid-btn');
     if(btn){
-      if(c.paid){
-        btn.classList.add('is-paid');
-        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> PAID';
-      } else {
-        btn.classList.remove('is-paid');
-        btn.innerHTML = '💳 PAID?';
-      }
+      btn.classList.toggle('is-paid',!!c.paid);
+      btn.innerHTML = c.paid
+        ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> PAID'
+        : '💳 PAID?';
     }
-    card.classList.toggle('pay-ok', !!c.paid);
-    card.classList.toggle('pay-none', !c.paid);
+    // clear method buttons if unpaid
+    if(!c.paid){
+      card.querySelectorAll('.pay-method-btn').forEach(b=>{
+        b.classList.remove('active-cash','active-upi');
+      });
+    }
+    card.classList.toggle('pay-ok',!!c.paid);
+    card.classList.toggle('pay-none',!c.paid);
   }
   updateSummary();
   toast(c.paid ? '💚 Payment received!' : 'Marked unpaid', c.paid ? 'ok' : 'warn');
@@ -829,6 +852,12 @@ function cardHTML(c){
           ${paidBtnInner}
         </button>
       </div>
+      <div class="ct-grp">
+        <div class="pay-method-row">
+          <button class="pay-method-btn${c.payMethod==='cash'?' active-cash':''}" data-action="setpaymethod" data-cid="${c.id}" data-method="cash">💵 Cash</button>
+          <button class="pay-method-btn${c.payMethod==='upi'?' active-upi':''}" data-action="setpaymethod" data-cid="${c.id}" data-method="upi">📲 UPI</button>
+        </div>
+      </div>
     </div>
   </div>`;
 }
@@ -985,6 +1014,32 @@ grid.addEventListener('click', e=>{
   if(action==='additem')        addItem(cid);
   if(action==='completecust')   completeCustomer(cid);
   if(action==='togglepaid')     togglePaid(cid);
+  if(action==='setpaymethod'){
+    const c=gc(cid); if(!c) return;
+    // toggle off if already selected, else set
+    c.payMethod = c.payMethod===btn.dataset.method ? null : btn.dataset.method;
+    // auto-mark as paid when a method is selected
+    if(c.payMethod) c.paid=1;
+    save();
+    // update buttons in place
+    const card=document.getElementById('card-'+cid);
+    if(card){
+      card.querySelectorAll('.pay-method-btn').forEach(b=>{
+        b.classList.toggle('active-cash', c.payMethod==='cash' && b.dataset.method==='cash');
+        b.classList.toggle('active-upi',  c.payMethod==='upi'  && b.dataset.method==='upi');
+      });
+      const pb=card.querySelector('.paid-btn');
+      if(pb){
+        pb.classList.toggle('is-paid',!!c.paid);
+        pb.innerHTML=c.paid
+          ?'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> PAID'
+          :'💳 PAID?';
+      }
+      card.classList.toggle('pay-ok',!!c.paid);
+      card.classList.toggle('pay-none',!c.paid);
+    }
+    updateSummary();
+  }
 });
 
 grid.addEventListener('change', e=>{
@@ -1060,7 +1115,9 @@ function exportPDF(){
     const cBal  = cTot - cPaid;
     const pSt   = c.paid ? 'paid' : 'unpaid';
     const pColor= c.paid ? '#3ecf8e' : '#f05d5d';
-    const pLabel= c.paid ? '✓ Paid' : 'Unpaid';
+    const pLabel= c.paid
+      ? ('✓ Paid' + (c.payMethod==='cash'?' · Cash': c.payMethod==='upi'?' · UPI':''))
+      : 'Unpaid';
     const status = c.served ? 'Served' : 'Active';
     const statusColor = c.served ? '#3ecf8e' : '#f5a623';
 
@@ -1097,6 +1154,129 @@ function exportPDF(){
       });
     }
   });
+
+  // ── ANALYTICS ──────────────────────────
+  let cashCount=0, cashTotal=0, upiCount=0, upiTotal=0;
+  let unpaidCount=0, unpaidTotal=0, parcelCount=0;
+  let servedCount=0, activeCount=0;
+  const itemMap = {}; // name → {qty, revenue}
+
+  S.customers.forEach(c=>{
+    const bill = c.items.reduce((s,i)=>s+i.total,0);
+    if(c.served) servedCount++; else activeCount++;
+    if(c.paid){
+      if(c.payMethod==='cash'){ cashCount++; cashTotal+=bill; }
+      else if(c.payMethod==='upi'){ upiCount++; upiTotal+=bill; }
+      else { cashCount++; cashTotal+=bill; } // paid but no method = cash assumed
+    } else {
+      unpaidCount++; unpaidTotal+=bill;
+    }
+    c.items.forEach(i=>{
+      if(i.parcel) parcelCount++;
+      const key = i.name||'Unknown';
+      if(!itemMap[key]) itemMap[key]={qty:0,revenue:0};
+      itemMap[key].qty++;
+      itemMap[key].revenue+=i.total;
+    });
+  });
+
+  // top items by qty
+  const topItems = Object.entries(itemMap)
+    .sort((a,b)=>b[1].qty-a[1].qty)
+    .slice(0,8);
+
+  // avg bill per paid customer
+  const paidCusts = cashCount+upiCount;
+  const avgBill = paidCusts>0 ? Math.round((cashTotal+upiTotal)/paidCusts) : 0;
+
+  // cash vs upi split %
+  const totalCollected = cashTotal+upiTotal;
+  const cashPct  = totalCollected>0 ? Math.round((cashTotal/totalCollected)*100) : 0;
+  const upiPct   = totalCollected>0 ? 100-cashPct : 0;
+
+  // top items HTML
+  const topItemsHTML = topItems.map(([name,d])=>{
+    const pct = totalCost>0 ? Math.round((d.revenue/totalCost)*100) : 0;
+    return '<tr>'
+      +'<td style="padding:7px 10px;font-size:.8rem;color:#1a1a2e;font-weight:600">'+esc(name)+'</td>'
+      +'<td style="padding:7px 10px;text-align:center;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:#0e0e0f">'+d.qty+'×</td>'
+      +'<td style="padding:7px 10px;text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:#1a9967">₹'+d.revenue+'</td>'
+      +'<td style="padding:7px 10px">'
+        +'<div style="background:#e8e8f0;border-radius:99px;height:6px;overflow:hidden">'
+          +'<div style="background:#3ecf8e;height:100%;width:'+pct+'%;border-radius:99px"></div>'
+        +'</div>'
+      +'</td>'
+      +'</tr>';
+  }).join('');
+
+  const analysisSection = `
+<div style="margin-top:28px;page-break-inside:avoid">
+  <div class="section-title" style="margin-bottom:16px">📊 Day Analysis</div>
+
+  <!-- Payment Method Breakdown -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+    <div style="background:#f0fdf6;border:1px solid #3ecf8e40;border-radius:10px;padding:16px;border-left:4px solid #3ecf8e">
+      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#1a9967;margin-bottom:6px">💵 Cash</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:700;color:#1a9967;line-height:1">₹${cashTotal}</div>
+      <div style="font-size:.68rem;color:#6b6b80;margin-top:4px">${cashCount} customer${cashCount!==1?'s':''} &nbsp;·&nbsp; ${cashPct}% of collection</div>
+    </div>
+    <div style="background:#f0f5ff;border:1px solid #5d9cf040;border-radius:10px;padding:16px;border-left:4px solid #5d9cf0">
+      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#2d72c4;margin-bottom:6px">📲 UPI</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:700;color:#2d72c4;line-height:1">₹${upiTotal}</div>
+      <div style="font-size:.68rem;color:#6b6b80;margin-top:4px">${upiCount} customer${upiCount!==1?'s':''} &nbsp;·&nbsp; ${upiPct}% of collection</div>
+    </div>
+    <div style="background:#fff2f2;border:1px solid #f05d5d40;border-radius:10px;padding:16px;border-left:4px solid #f05d5d">
+      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#c43e3e;margin-bottom:6px">⏳ Unpaid</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:700;color:#c43e3e;line-height:1">₹${unpaidTotal}</div>
+      <div style="font-size:.68rem;color:#6b6b80;margin-top:4px">${unpaidCount} customer${unpaidCount!==1?'s':''} pending</div>
+    </div>
+  </div>
+
+  <!-- Cash vs UPI bar -->
+  ${totalCollected>0?`
+  <div style="margin-bottom:20px;background:#f8f8fc;border-radius:10px;padding:14px 16px">
+    <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#9898b0;margin-bottom:8px">Collection Split</div>
+    <div style="display:flex;border-radius:8px;overflow:hidden;height:22px;gap:2px">
+      ${cashPct>0?`<div style="background:#3ecf8e;width:${cashPct}%;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:800;color:#fff;font-family:'JetBrains Mono',monospace">💵 ${cashPct}%</div>`:''}
+      ${upiPct>0?`<div style="background:#5d9cf0;width:${upiPct}%;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:800;color:#fff;font-family:'JetBrains Mono',monospace">📲 ${upiPct}%</div>`:''}
+    </div>
+  </div>`:''}
+
+  <!-- Key Stats Row -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">
+    <div style="background:#f8f8fc;border-radius:8px;padding:12px;text-align:center">
+      <div style="font-size:1.3rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:#0e0e0f">${S.customers.length}</div>
+      <div style="font-size:.6rem;color:#9898b0;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Total Customers</div>
+    </div>
+    <div style="background:#f8f8fc;border-radius:8px;padding:12px;text-align:center">
+      <div style="font-size:1.3rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:#1a9967">${servedCount}</div>
+      <div style="font-size:.6rem;color:#9898b0;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Served</div>
+    </div>
+    <div style="background:#f8f8fc;border-radius:8px;padding:12px;text-align:center">
+      <div style="font-size:1.3rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:#f5a623">₹${avgBill}</div>
+      <div style="font-size:.6rem;color:#9898b0;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Avg Bill</div>
+    </div>
+    <div style="background:#f8f8fc;border-radius:8px;padding:12px;text-align:center">
+      <div style="font-size:1.3rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:#5d9cf0">${parcelCount}</div>
+      <div style="font-size:.6rem;color:#9898b0;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">📦 Parcels</div>
+    </div>
+  </div>
+
+  <!-- Top Items -->
+  ${topItems.length>0?`
+  <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#9898b0;margin-bottom:8px">🏆 Top Items</div>
+  <table style="width:100%;border-collapse:collapse;background:#f8f8fc;border-radius:10px;overflow:hidden">
+    <thead>
+      <tr style="background:#0e0e0f">
+        <th style="padding:8px 10px;text-align:left;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#fff">Item</th>
+        <th style="padding:8px 10px;text-align:center;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#fff">Qty</th>
+        <th style="padding:8px 10px;text-align:right;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#fff">Revenue</th>
+        <th style="padding:8px 10px;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#fff">Share</th>
+      </tr>
+    </thead>
+    <tbody>${topItemsHTML}</tbody>
+  </table>`:''}
+</div>`;
 
   const html = `<!DOCTYPE html>
 <html>
@@ -1215,6 +1395,8 @@ function exportPDF(){
   <div class="gt-grp"><div class="gt-lbl">Collected</div><div class="gt-val g">₹${totalPaid}</div></div>
   <div class="gt-grp"><div class="gt-lbl">Pending</div><div class="gt-val r">₹${totalRem}</div></div>
 </div>
+
+${analysisSection}
 
 <div class="report-footer">Generated by ShopTrack &nbsp;·&nbsp; ${dateStr} ${timeStr} &nbsp;·&nbsp; Use browser Print → Save as PDF</div>
 
